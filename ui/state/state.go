@@ -22,16 +22,24 @@ type AppState struct {
 	BtnWSL      widget.Clickable
 }
 
+type TerminalScript struct {
+	Action   HostAction
+	Commands []string // commands for running the script
+}
+
 type HostState struct {
 	Name     string
 	Address  string
 	IsOnline bool
 	PingRTT  time.Duration
 
-	TerminalScripts struct {
-		action   HostAction
-		commands []string // commands for running the script
-	}
+	// Scripts cho 2 hành động Bật & Tắt
+	TurnOnScript   TerminalScript
+	ShutdownScript TerminalScript
+
+	// State cho Gio UI Widget
+	BtnTurnOn   widget.Clickable
+	BtnShutdown widget.Clickable
 
 	Mu sync.Mutex
 }

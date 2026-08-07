@@ -42,15 +42,37 @@ func run(w *app.Window) error {
 	// handle global app configuration
 	appState.NameInput.SingleLine = true
 
-	hostItems := []*state.HostState{
-		{Name: "Google DNS", Address: "8.8.8.8"},
-		{Name: "Local Router", Address: "192.168.1.1"},
-		{Name: "Desktop Office", Address: "Yuu.local"},
-		{Name: "Server Offline Test", Address: "192.168.1.250"},
+	hostStates := []*state.HostState{
+		{
+			Name:    "Main Server (Yuu, Kubernetes, WSL, Window Server)",
+			Address: "Yuu.local",
+			TurnOnScript: state.TerminalScript{
+				Action:   state.HostActionTurnOn,
+				Commands: []string{"echo '=== WAKING UP SERVER ==='", "ping -c 3 192.168.1.100"},
+			},
+			ShutdownScript: state.TerminalScript{
+				Action:   state.HostActionShutdown,
+				Commands: []string{"echo '=== SHUTTING DOWN SERVER ==='", "ssh root@192.168.1.100 'poweroff'"},
+			},
+		},
+		{
+			Name:    "Local Router",
+			Address: "192.168.1.1",
+			TurnOnScript: state.TerminalScript{
+				Action:   state.HostActionTurnOn,
+				Commands: []string{"echo 'Triggering Router On script...'"},
+			},
+			ShutdownScript: state.TerminalScript{
+				Action:   state.HostActionShutdown,
+				Commands: []string{"echo 'Triggering Router Shutdown script...'"},
+			},
+		},
 	}
 
+	singlePageApp := layouts.NewSinglePageApp(hostStates)
+
 	// background worker to check the hosts
-	go pingToServer(hostItems, w)
+	go pingToServer(hostStates, w)
 
 	// handle frame events and other events
 	for {
@@ -69,45 +91,13 @@ func run(w *app.Window) error {
 
 			// set the layout
 			layout.UniformInset(unit.Dp(0)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				// Vertical flex layout
-				return layout.Flex{
-					Axis: layout.Horizontal,
-				}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						gtx.Constraints.Min.X = gtx.Dp(unit.Dp(220))
-						gtx.Constraints.Max.X = gtx.Dp(unit.Dp(220))
-						return layouts.DrawSidebar(gtx, th, &appState)
-					}),
-
-					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return layout.Flex{
-							Axis: layout.Vertical,
-						}.Layout(gtx,
-							layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
-							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-								gtx.Constraints.Min.X = gtx.Dp(unit.Dp(600))
-								gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(600))
-								return drawMain(gtx, &appState, hostItems, th)
-							}),
-						)
-					}),
-				)
+				return singlePageApp.Layout(gtx, th)
 			})
 
 			// draw frame to the gpu
 			e.Frame(gtx.Ops)
 		}
 	}
-}
-
-func drawMain(gtx layout.Context, appState *state.AppState, hostItems []*state.HostState, th *material.Theme) layout.Dimensions {
-	if appState.SelectedTab == components.TabServer {
-		return layouts.DrawServerContent(gtx, appState, hostItems, th)
-	} else if appState.SelectedTab == components.TabWSL {
-		return layouts.DrawWSLNodeContent(gtx, appState, th)
-	}
-
-	return layout.Dimensions{}
 }
 
 func pingToServer(hostItems []*state.HostState, w *app.Window) {
