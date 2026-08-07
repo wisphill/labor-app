@@ -1,8 +1,8 @@
 package main
 
 import (
-	"image"
 	"image/color"
+	"labor-app/ui"
 	"log"
 	"os"
 
@@ -36,7 +36,9 @@ func main() {
 		w := new(app.Window)
 		w.Option(
 			app.Title("Labor management"),
-			app.Size(unit.Dp(400), unit.Dp(320)),
+			app.Size(unit.Dp(1024), unit.Dp(768)),
+			app.MinSize(unit.Dp(820), unit.Dp(600)),
+			app.Maximized.Option(),
 		)
 		if err := run(w); err != nil {
 			log.Fatal(err)
@@ -75,18 +77,20 @@ func run(w *app.Window) error {
 				return layout.Flex{
 					Axis: layout.Horizontal,
 				}.Layout(gtx,
-
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						gtx.Constraints.Min.X = gtx.Dp(unit.Dp(220))
 						gtx.Constraints.Max.X = gtx.Dp(unit.Dp(220))
 						return drawSidebar(gtx, th, &state)
 					}),
+
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{
 							Axis: layout.Vertical,
 						}.Layout(gtx,
 							layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
-							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								gtx.Constraints.Min.X = gtx.Dp(unit.Dp(600))
+								gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(600))
 								return drawMain(gtx, &state, th)
 							}),
 						)
@@ -109,76 +113,14 @@ func drawSidebar(gtx layout.Context, th *material.Theme, state *AppState) layout
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			// Tab 1: Server
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return drawNavItem(gtx, th, &state.btnServer, "Server", state.selectedTab == TabServer)
+				return ui.DrawNavItem(gtx, th, &state.btnServer, "Server", state.selectedTab == TabServer)
 			}),
 
 			layout.Rigid(layout.Spacer{Height: unit.Dp(6)}.Layout),
 
 			// Tab 2: WSL Node
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return drawNavItem(gtx, th, &state.btnWSL, "WSL Node", state.selectedTab == TabWSL)
-			}),
-		)
-	})
-}
-
-func drawNavItem(gtx layout.Context, th *material.Theme, btn *widget.Clickable, title string, isSelected bool) layout.Dimensions {
-	return btn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		// Bảng màu giống giao diện mẫu
-		blueColor := color.NRGBA{R: 0x00, G: 0x7A, B: 0xFF, A: 0xFF} // Màu xanh Blue
-		activeBg := color.NRGBA{R: 0xC6, G: 0xC6, B: 0xC6, A: 0xFF}  // Màu xám đậm bo góc khi Active
-		textColor := color.NRGBA{R: 0x1A, G: 0x1A, B: 0x1A, A: 0xFF}
-
-		return layout.Stack{}.Layout(gtx,
-			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-				if isSelected {
-					rr := gtx.Dp(unit.Dp(8)) // Độ bo góc 8dp
-					defer clip.RRect{
-						Rect: image.Rectangle{Max: gtx.Constraints.Min},
-						SE:   rr, SW: rr, NW: rr, NE: rr,
-					}.Push(gtx.Ops).Pop()
-					paint.ColorOp{Color: activeBg}.Add(gtx.Ops)
-					paint.PaintOp{}.Add(gtx.Ops)
-				}
-				return layout.Dimensions{Size: gtx.Constraints.Min}
-			}),
-
-			// Lớp trên: Nội dung gồm Icon và Chữ
-			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{
-					Top:    unit.Dp(10),
-					Bottom: unit.Dp(10),
-					Left:   unit.Dp(12),
-					Right:  unit.Dp(12),
-				}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{
-						Axis:      layout.Horizontal,
-						Alignment: layout.Middle,
-					}.Layout(gtx,
-						// Icon đại diện màu xanh
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							size := gtx.Dp(unit.Dp(20))
-							defer clip.RRect{
-								Rect: image.Rectangle{Max: image.Pt(size, size)},
-								SE:   gtx.Dp(4), SW: gtx.Dp(4), NW: gtx.Dp(4), NE: gtx.Dp(4),
-							}.Push(gtx.Ops).Pop()
-							paint.ColorOp{Color: blueColor}.Add(gtx.Ops)
-							paint.PaintOp{}.Add(gtx.Ops)
-							return layout.Dimensions{Size: image.Pt(size, size)}
-						}),
-
-						// Khoảng cách giữa Icon và Text
-						layout.Rigid(layout.Spacer{Width: unit.Dp(12)}.Layout),
-
-						// Tiêu đề Tab
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							lbl := material.Body1(th, title)
-							lbl.Color = textColor
-							lbl.TextSize = unit.Sp(15)
-							return lbl.Layout(gtx)
-						}),
-					)
-				})
+				return ui.DrawNavItem(gtx, th, &state.btnWSL, "WSL Node", state.selectedTab == TabWSL)
 			}),
 		)
 	})
