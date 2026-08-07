@@ -3,6 +3,7 @@ package layouts
 import (
 	"fmt"
 	"image/color"
+	executor "labor-app/cmd/execute_commands"
 	"labor-app/ui/components"
 	"labor-app/ui/state"
 
@@ -38,13 +39,18 @@ func (app *SinglePageApp) Layout(gtx layout.Context, th *material.Theme) layout.
 func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, host *state.HostState) layout.Dimensions {
 	// 1. Kiểm tra xự kiện Click Nút Bật / Tắt
 	if host.BtnTurnOn.Clicked(gtx) {
-		//cmdStr := strings.Join(host.TurnOnScript.Commands, " && ")
-		// go OpenTerminalApp(cmdStr)
+		executor.ExecuteCommands(
+			"ssh yuu@yuu -p 22 \"uptime\"",
+		)
 	}
 
 	if host.BtnShutdown.Clicked(gtx) {
-		// cmdStr := strings.Join(host.ShutdownScript.Commands, " && ")
-		// go OpenTerminalApp(cmdStr)
+		_, err := executor.ExecuteCommands(
+			"ssh Windows@yuu \"shutdown /s /t 0\"",
+		)
+		if err != nil {
+			fmt.Printf("Error while processing shutting down %v", err)
+		}
 	}
 
 	// 2. Lấy dữ liệu an toàn từ Mutex
@@ -100,14 +106,14 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 
 			// D. Nút Bật (Turn On Terminal Script)
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				btn := material.Button(th, &host.BtnTurnOn, "⚡ Bật")
+				btn := material.Button(th, &host.BtnTurnOn, "⚡ Turn on")
 				btn.Background = color.NRGBA{R: 46, G: 204, B: 113, A: 255}
 				return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, btn.Layout)
 			}),
 
 			// E. Nút Tắt (Shutdown Terminal Script)
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				btn := material.Button(th, &host.BtnShutdown, "🛑 Tắt")
+				btn := material.Button(th, &host.BtnShutdown, "🛑 Shutdown")
 				btn.Background = color.NRGBA{R: 231, G: 76, B: 60, A: 255}
 				return btn.Layout(gtx)
 			}),
