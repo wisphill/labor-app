@@ -22,7 +22,7 @@ func DrawNavItem(gtx layout.Context, th *material.Theme, btn *widget.Clickable, 
 		return layout.Stack{}.Layout(gtx,
 			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
 				if isSelected {
-					rr := gtx.Dp(unit.Dp(8)) // Độ bo góc 8dp
+					rr := gtx.Dp(unit.Dp(8))
 					defer clip.RRect{
 						Rect: image.Rectangle{Max: gtx.Constraints.Min},
 						SE:   rr, SW: rr, NW: rr, NE: rr,
@@ -35,6 +35,7 @@ func DrawNavItem(gtx layout.Context, th *material.Theme, btn *widget.Clickable, 
 
 			// Lớp trên: Nội dung gồm Icon và Chữ
 			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = gtx.Constraints.Max.X
 				return layout.Inset{
 					Top:    unit.Dp(10),
 					Bottom: unit.Dp(10),
