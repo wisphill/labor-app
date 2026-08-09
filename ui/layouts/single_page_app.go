@@ -19,11 +19,16 @@ type SinglePageApp struct {
 	hosts        []*state.HostState
 	list         widget.List
 	shutdownIcon *components.SVGRenderer
+	serverIcon   *components.SVGRenderer
 }
 
 func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
 	// Khởi tạo ở ngoài vòng lặp sự kiện (Event Loop)
 	shutdownIcon, err := components.LoadSVG("assets/shutdown.svg", 24, 24, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+	if err != nil {
+		log.Fatalf("Error whil loading SVG: %v", err)
+	}
+	serverIcon, err := components.LoadSVG("assets/server.svg", 30, 30, color.NRGBA{R: 0, G: 0, B: 0, A: 255})
 	if err != nil {
 		log.Fatalf("Error whil loading SVG: %v", err)
 	}
@@ -35,6 +40,7 @@ func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
 		},
 		hosts:        hostStates,
 		shutdownIcon: shutdownIcon,
+		serverIcon:   serverIcon,
 	}
 }
 
@@ -106,9 +112,10 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 								Width: unit.Dp(5),
 							}.Layout),
 
-							// Monitor icon
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								return components.DrawMonitorIcon(gtx)
+								return layout.Inset{
+									Right: unit.Dp(4),
+								}.Layout(gtx, app.serverIcon.Layout)
 							}),
 						)
 					}),
