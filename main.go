@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	server "labor-app/cmd/host"
 	"labor-app/cmd/server_check"
 	"labor-app/ui/layouts"
 	"labor-app/ui/state"
@@ -54,6 +56,7 @@ func run(w *app.Window) error {
 
 	// background worker to check the hosts
 	go pingToServer(hostStates, w)
+	go fetchWSLNodes(hostStates, w)
 
 	// handle frame events and other events
 	for {
@@ -91,6 +94,40 @@ func pingToServer(hostItems []*state.HostState, w *app.Window) {
 				h.Mu.Lock()
 				h.IsOnline = online
 				h.PingRTT = rtt
+				h.Mu.Unlock()
+			}(host, addr)
+		}
+		wg.Wait()
+
+		w.Invalidate()
+		time.Sleep(3 * time.Second)
+	}
+}
+
+func fetchWSLNodes(hostItems []*state.HostState, w *app.Window) {
+	for {
+		var wg sync.WaitGroup
+		for _, host := range hostItems {
+			host.Mu.Lock()
+			addr := host.Address
+			host.Mu.Unlock()
+
+			wg.Add(1)
+			go func(h *state.HostState, address string) {
+				defer wg.Done()
+				wslNodes, err := server.GetRunningWSLNodes()
+				if err != nil {
+					fmt.Println("Error while getting the WSL nodes")
+				}
+
+				h.Mu.Lock()
+				h.Wsls = make([]*state.WSLState, 0)
+				for _, wslNode := range wslNodes {
+					h.Wsls = append(h.Wsls, &state.WSLState{
+						Name: wslNode,
+					})
+				}
+
 				h.Mu.Unlock()
 			}(host, addr)
 		}

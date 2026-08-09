@@ -2,6 +2,7 @@ package layouts
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	server "labor-app/cmd/host"
 	"labor-app/ui/components"
@@ -20,6 +21,8 @@ type SinglePageApp struct {
 	list         widget.List
 	shutdownIcon *components.SVGRenderer
 	serverIcon   *components.SVGRenderer
+
+	wslList layout.List
 }
 
 func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
@@ -32,6 +35,7 @@ func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
 	if err != nil {
 		log.Fatalf("Error whil loading SVG: %v", err)
 	}
+
 	return &SinglePageApp{
 		list: widget.List{
 			List: layout.List{
@@ -45,9 +49,35 @@ func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
 }
 
 func (app *SinglePageApp) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
-	return material.List(th, &app.list).Layout(gtx, len(app.hosts), func(gtx layout.Context, i int) layout.Dimensions {
-		return app.layoutHostRow(gtx, th, app.hosts[i])
-	})
+	// setting global configs for the layout
+	app.wslList.Axis = layout.Horizontal
+
+	return layout.Flex{
+		Axis: layout.Vertical,
+	}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return material.List(th, &app.list).Layout(
+				gtx,
+				len(app.hosts),
+				func(gtx layout.Context, i int) layout.Dimensions {
+					return app.layoutHostRow(gtx, th, app.hosts[i])
+				},
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{
+				Left: unit.Dp(16),
+			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				lbl := material.H6(th, "Running WSL Nodes")
+				lbl.Font.Weight = 600
+				return lbl.Layout(gtx)
+			})
+		}),
+		// WSL nodes - horizontal
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return app.layoutWSLNodes(gtx, th)
+		}),
+	)
 }
 
 // Layout vẽ từng dòng Server
@@ -206,5 +236,127 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 				})
 			}),
 		)
+	})
+}
+
+func (app *SinglePageApp) layoutWSLNodes(
+	gtx layout.Context,
+	th *material.Theme,
+) layout.Dimensions {
+	allWslNodes := make([]*state.WSLState, 0)
+	for _, host := range app.hosts {
+		allWslNodes = append(allWslNodes, host.Wsls...)
+	}
+
+	fmt.Println("kakakakaka")
+	fmt.Println(allWslNodes)
+	return app.wslList.Layout(
+		gtx,
+		len(allWslNodes),
+		func(gtx layout.Context, i int) layout.Dimensions {
+			return app.layoutWSLNode(gtx, th, allWslNodes[i])
+		},
+	)
+}
+
+func (app *SinglePageApp) layoutWSLNode(
+	gtx layout.Context,
+	th *material.Theme,
+	wslNodeState *state.WSLState,
+) layout.Dimensions {
+	return layout.Inset{
+		Right: unit.Dp(8),
+	}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return widget.Border{
+			Color: color.NRGBA{
+				R: 220,
+				G: 220,
+				B: 220,
+				A: 255,
+			},
+			Width:        unit.Dp(1),
+			CornerRadius: unit.Dp(6),
+		}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+
+			return layout.Inset{
+				Top:    unit.Dp(8),
+				Bottom: unit.Dp(8),
+				Left:   unit.Dp(12),
+				Right:  unit.Dp(12),
+			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+
+				return layout.Flex{
+					Axis: layout.Vertical,
+				}.Layout(
+					gtx,
+
+					// Name
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{
+							Axis: layout.Horizontal,
+						}.Layout(
+							gtx,
+
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{
+									Right: unit.Dp(6),
+								}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return layout.Dimensions{
+										Size: image.Pt(8, 8),
+									}
+								})
+							}),
+
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								lbl := material.Body2(th, wslNodeState.Name)
+								lbl.TextSize = unit.Sp(14)
+								lbl.Font.Weight = font.Medium
+
+								return lbl.Layout(gtx)
+							}),
+						)
+					}),
+
+					// Status
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						lbl := material.Caption(th, "Running • WSL 2")
+						lbl.TextSize = unit.Sp(12)
+
+						return layout.Inset{
+							Top: unit.Dp(4),
+						}.Layout(gtx, lbl.Layout)
+					}),
+
+					// D. power button
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						btn := material.ButtonLayout(th, &wslNodeState.BtnPower)
+
+						if true {
+							btn.Background = color.NRGBA{R: 231, G: 76, B: 60, A: 255}
+						} else {
+							btn.Background = color.NRGBA{R: 46, G: 204, B: 113, A: 255}
+						}
+
+						return btn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return layout.UniformInset(unit.Dp(0)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return layout.Flex{
+									Alignment: layout.Middle,
+								}.Layout(gtx,
+									layout.Rigid(layout.Spacer{
+										Width: unit.Dp(6),
+									}.Layout),
+									// Icon
+									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+										return layout.Inset{
+											Right: unit.Dp(4),
+										}.Layout(gtx, app.shutdownIcon.Layout)
+									}),
+								)
+							})
+						})
+					}),
+				)
+			})
+		})
 	})
 }

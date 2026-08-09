@@ -26,6 +26,11 @@ type HostState struct {
 	PingRTT  time.Duration
 
 	BtnPower widget.Clickable
+	Wsls     []*WSLState
+	Mu       sync.Mutex
+}
 
-	Mu sync.Mutex
+type WSLState struct {
+	Name     string
+	BtnPower widget.Clickable
 }
