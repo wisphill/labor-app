@@ -25,10 +25,6 @@ type HostState struct {
 	IsOnline bool
 	PingRTT  time.Duration
 
-	// Scripts cho 2 hành động Bật & Tắt
-	TurnOnScript   TerminalScript
-	ShutdownScript TerminalScript
-
 	BtnPower widget.Clickable
 
 	Mu sync.Mutex

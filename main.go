@@ -47,14 +47,6 @@ func run(w *app.Window) error {
 		{
 			Name:    "Main Server (Yuu, Kubernetes, WSL, Window Server)",
 			Address: "Yuu.local",
-			TurnOnScript: state.TerminalScript{
-				Action:   state.HostActionTurnOn,
-				Commands: []string{"echo '=== WAKING UP SERVER ==='", "ping -c 3 192.168.1.100"},
-			},
-			ShutdownScript: state.TerminalScript{
-				Action:   state.HostActionShutdown,
-				Commands: []string{"echo '=== SHUTTING DOWN SERVER ==='", "ssh root@192.168.1.100 'poweroff'"},
-			},
 		},
 	}
 
