@@ -9,15 +9,15 @@ import (
 	"gioui.org/op/paint"
 )
 
-// Vẽ chấm tròn trạng thái (Green = Online, Red = Offline, Gray = Tắt)
+// draw the circle status icon
 func DrawStatusBadge(gtx layout.Context, isOnline bool) layout.Dimensions {
 	size := gtx.Dp(14)
 
-	badgeColor := color.NRGBA{R: 180, G: 180, B: 180, A: 255} // Xám (Tắt)
+	badgeColor := color.NRGBA{R: 180, G: 180, B: 180, A: 255} // grey
 	if isOnline {
-		badgeColor = color.NRGBA{R: 46, G: 204, B: 113, A: 255} // Xanh (Online)
+		badgeColor = color.NRGBA{R: 46, G: 204, B: 113, A: 255} // green
 	} else {
-		badgeColor = color.NRGBA{R: 231, G: 76, B: 60, A: 255} // Đỏ (Offline)
+		badgeColor = color.NRGBA{R: 231, G: 76, B: 60, A: 255} // read
 	}
 
 	defer clip.Ellipse{

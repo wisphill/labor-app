@@ -3,10 +3,12 @@ package layouts
 import (
 	"fmt"
 	"image/color"
-	executor "labor-app/cmd/execute_commands"
+	server "labor-app/cmd/host"
 	"labor-app/ui/components"
 	"labor-app/ui/state"
+	"log"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -14,18 +16,25 @@ import (
 )
 
 type SinglePageApp struct {
-	hosts []*state.HostState
-	list  widget.List
+	hosts        []*state.HostState
+	list         widget.List
+	shutdownIcon *components.SVGRenderer
 }
 
 func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
+	// Khởi tạo ở ngoài vòng lặp sự kiện (Event Loop)
+	shutdownIcon, err := components.LoadSVG("assets/shutdown.svg", 24, 24, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+	if err != nil {
+		log.Fatalf("Error whil loading SVG: %v", err)
+	}
 	return &SinglePageApp{
 		list: widget.List{
 			List: layout.List{
 				Axis: layout.Vertical,
 			},
 		},
-		hosts: hostStates,
+		hosts:        hostStates,
+		shutdownIcon: shutdownIcon,
 	}
 }
 
@@ -37,23 +46,6 @@ func (app *SinglePageApp) Layout(gtx layout.Context, th *material.Theme) layout.
 
 // Layout vẽ từng dòng Server
 func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, host *state.HostState) layout.Dimensions {
-	// 1. Kiểm tra xự kiện Click Nút Bật / Tắt
-	if host.BtnTurnOn.Clicked(gtx) {
-		executor.ExecuteCommands(
-			"ssh yuu@yuu -p 22 \"uptime\"",
-		)
-	}
-
-	if host.BtnShutdown.Clicked(gtx) {
-		_, err := executor.ExecuteCommands(
-			"ssh Windows@yuu \"shutdown /s /t 0\"",
-		)
-		if err != nil {
-			fmt.Printf("Error while processing shutting down %v", err)
-		}
-	}
-
-	// 2. Lấy dữ liệu an toàn từ Mutex
 	host.Mu.Lock()
 	isOnline := host.IsOnline
 	rtt := host.PingRTT
@@ -61,7 +53,15 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 	address := host.Address
 	host.Mu.Unlock()
 
-	// 3. Dựng Layout hàng
+	isPowerButtonClicked := host.BtnPower.Clicked(gtx) // consume the event
+	if isPowerButtonClicked {
+		if isOnline {
+			go server.TurnOffServer()
+		} else if !isOnline {
+			go server.TurnOnServer()
+		}
+	}
+
 	return layout.Inset{
 		Top: unit.Dp(10), Bottom: unit.Dp(10),
 		Left: unit.Dp(16), Right: unit.Dp(16),
@@ -70,26 +70,70 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 			Axis:      layout.Horizontal,
 			Alignment: layout.Middle,
 		}.Layout(gtx,
-			// A. Đèn báo trạng thái On/Off (Xanh/Đỏ)
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return components.DrawStatusBadge(gtx, isOnline)
 			}),
 
-			layout.Rigid(layout.Spacer{Width: unit.Dp(12)}.Layout),
+			layout.Rigid(layout.Spacer{
+				Width: unit.Dp(10),
+			}.Layout),
 
-			// B. Tên Server & Địa chỉ IP "x.x.x.x"
+			// Name + IP
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-					layout.Rigid(material.Body1(th, name).Layout),
+				return layout.Flex{
+					Axis: layout.Vertical,
+				}.Layout(gtx,
+					// ┌──────────────────────┐
+					// │ phil             🖥 │
+					// └──────────────────────┘
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						lbl := material.Caption(th, address)
-						lbl.Color = color.NRGBA{R: 130, G: 130, B: 130, A: 255}
-						return lbl.Layout(gtx)
+						return layout.Flex{
+							Axis:      layout.Horizontal,
+							Alignment: layout.Middle,
+						}.Layout(gtx,
+
+							// Server name
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								lbl := material.Body2(th, name)
+								lbl.Font.Weight = font.Medium
+								lbl.TextSize = unit.Sp(12)
+								lbl.LineHeight = unit.Sp(15)
+								return lbl.Layout(gtx)
+							}),
+
+							// Khoảng cách name -> icon
+							layout.Rigid(layout.Spacer{
+								Width: unit.Dp(5),
+							}.Layout),
+
+							// Monitor icon
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return components.DrawMonitorIcon(gtx)
+							}),
+						)
+					}),
+
+					// IP address
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{
+							Top: unit.Dp(-5),
+						}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							lbl := material.Caption(th, address)
+							lbl.Color = color.NRGBA{
+								R: 130,
+								G: 130,
+								B: 130,
+								A: 255,
+							}
+							lbl.LineHeight = unit.Sp(14)
+
+							return lbl.Layout(gtx)
+						})
 					}),
 				)
 			}),
 
-			// C. Số Ping RTT
+			// C. Ping RTT
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				pingStr := "Timeout"
 				pingColor := color.NRGBA{R: 220, G: 50, B: 50, A: 255} // Red
@@ -101,21 +145,58 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 
 				lbl := material.Body2(th, pingStr)
 				lbl.Color = pingColor
+				lbl.TextSize = unit.Sp(12)
 				return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, lbl.Layout)
 			}),
 
-			// D. Nút Bật (Turn On Terminal Script)
+			// D. power button
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				btn := material.Button(th, &host.BtnTurnOn, "⚡ Turn on")
-				btn.Background = color.NRGBA{R: 46, G: 204, B: 113, A: 255}
-				return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, btn.Layout)
-			}),
+				btn := material.ButtonLayout(th, &host.BtnPower)
 
-			// E. Nút Tắt (Shutdown Terminal Script)
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				btn := material.Button(th, &host.BtnShutdown, "🛑 Shutdown")
-				btn.Background = color.NRGBA{R: 231, G: 76, B: 60, A: 255}
-				return btn.Layout(gtx)
+				if isOnline {
+					btn.Background = color.NRGBA{R: 231, G: 76, B: 60, A: 255}
+				} else {
+					btn.Background = color.NRGBA{R: 46, G: 204, B: 113, A: 255}
+				}
+
+				circuitText := "Shutdown"
+				if !isOnline {
+					circuitText = "Turn on"
+				}
+
+				return btn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.UniformInset(unit.Dp(0)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{
+							Alignment: layout.Middle,
+						}.Layout(gtx,
+							layout.Rigid(layout.Spacer{
+								Width: unit.Dp(6),
+							}.Layout),
+							// Icon
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{
+									Right: unit.Dp(4),
+								}.Layout(gtx, app.shutdownIcon.Layout)
+							}),
+
+							// Text
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{
+									Top: unit.Dp(6),
+								}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									lbl := material.Body2(th, circuitText)
+									lbl.Color = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+									lbl.Font.Weight = font.Medium
+
+									return lbl.Layout(gtx)
+								})
+							}),
+							layout.Rigid(layout.Spacer{
+								Width: unit.Dp(6),
+							}.Layout),
+						)
+					})
+				})
 			}),
 		)
 	})

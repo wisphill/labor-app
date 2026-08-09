@@ -2,7 +2,12 @@ module labor-app
 
 go 1.25.0
 
-require gioui.org v0.10.1
+require (
+	gioui.org v0.10.1
+	github.com/joho/godotenv v1.5.1
+	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c
+	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef
+)
 
 require (
 	gioui.org/shader v1.0.8 // indirect

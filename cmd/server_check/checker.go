@@ -1,29 +1,51 @@
 package server_check
 
 import (
+	"net"
 	"os/exec"
 	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 )
 
 var timeRegex = regexp.MustCompile(`(?i)time[=<]\s*([\d.]+)\s*ms`)
 
-// PingOS sử dụng binary ping của HĐH: Không cần Root, Không cần mở Port
+// resolve host to the ipv4
+func resolveHost(host string) string {
+	host = strings.TrimSpace(host)
+
+	if ip := net.ParseIP(host); ip != nil {
+		return host
+	}
+
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return host
+	}
+
+	// get the IP v4
+	for _, ip := range ips {
+		if ipv4 := ip.To4(); ipv4 != nil {
+			return ipv4.String()
+		}
+	}
+
+	return host
+}
+
+// Use the OS ping
 func PingOS(host string, timeout time.Duration) (bool, time.Duration) {
 	var cmd *exec.Cmd
 	timeoutMs := strconv.Itoa(int(timeout.Milliseconds()))
 
 	switch runtime.GOOS {
 	case "windows":
-		// -n 1 (1 gói), -w timeout (ms)
 		cmd = exec.Command("ping", "-n", "1", "-w", timeoutMs, host)
 	case "darwin":
-		// macOS: -c 1 (1 gói), -W timeout (ms)
 		cmd = exec.Command("ping", "-c", "1", "-W", timeoutMs, host)
 	default:
-		// Linux: -c 1 (1 gói), -W timeout (giây)
 		timeoutSec := strconv.Itoa(int(timeout.Seconds()))
 		if timeoutSec == "0" {
 			timeoutSec = "1"
@@ -31,8 +53,9 @@ func PingOS(host string, timeout time.Duration) (bool, time.Duration) {
 		cmd = exec.Command("ping", "-c", "1", "-W", timeoutSec, host)
 	}
 
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
+		// fmt.Printf("Ping error on host '%s': %v\nOutput: %s\n", host, err, string(out))
 		return false, 0
 	}
 

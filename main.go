@@ -2,7 +2,6 @@ package main
 
 import (
 	"labor-app/cmd/server_check"
-	"labor-app/ui/components"
 	"labor-app/ui/layouts"
 	"labor-app/ui/state"
 	"log"
@@ -15,6 +14,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -37,10 +37,11 @@ func main() {
 func run(w *app.Window) error {
 	th := material.NewTheme()
 	var ops op.Ops
-	var appState state.AppState
 
-	// handle global app configuration
-	appState.NameInput.SingleLine = true
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	hostStates := []*state.HostState{
 		{
@@ -53,18 +54,6 @@ func run(w *app.Window) error {
 			ShutdownScript: state.TerminalScript{
 				Action:   state.HostActionShutdown,
 				Commands: []string{"echo '=== SHUTTING DOWN SERVER ==='", "ssh root@192.168.1.100 'poweroff'"},
-			},
-		},
-		{
-			Name:    "Local Router",
-			Address: "192.168.1.1",
-			TurnOnScript: state.TerminalScript{
-				Action:   state.HostActionTurnOn,
-				Commands: []string{"echo 'Triggering Router On script...'"},
-			},
-			ShutdownScript: state.TerminalScript{
-				Action:   state.HostActionShutdown,
-				Commands: []string{"echo 'Triggering Router Shutdown script...'"},
 			},
 		},
 	}
@@ -82,12 +71,6 @@ func run(w *app.Window) error {
 			return e.Err
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
-
-			if appState.BtnServer.Clicked(gtx) {
-				appState.SelectedTab = components.TabServer
-			} else if appState.BtnWSL.Clicked(gtx) {
-				appState.SelectedTab = components.TabWSL
-			}
 
 			// set the layout
 			layout.UniformInset(unit.Dp(0)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -122,6 +105,6 @@ func pingToServer(hostItems []*state.HostState, w *app.Window) {
 		wg.Wait()
 
 		w.Invalidate()
-		time.Sleep(10 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }

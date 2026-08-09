@@ -7,8 +7,7 @@ import (
 	"strings"
 )
 
-// ExecuteCommands nhận vào danh sách nhiều lệnh, ghép lại và thực thi qua Shell gốc của hệ điều hành.
-// Trả về: (Output thu được, Lỗi nếu có)
+// use the OS shell
 func ExecuteCommands(commands ...string) (string, error) {
 	if len(commands) == 0 {
 		return "", nil
@@ -18,42 +17,18 @@ func ExecuteCommands(commands ...string) (string, error) {
 
 	switch runtime.GOOS {
 	case "windows":
-		// Trên Windows dùng & hoặc && để nối chuỗi lệnh
 		joinedCmds := strings.Join(commands, " & ")
 		cmd = exec.Command("cmd", "/C", joinedCmds)
-
-	default: // macOS & Linux
-		// Trên Unix-like dùng && để đảm bảo lệnh trước chạy thành công mới chạy lệnh sau
+	default:
 		joinedCmds := strings.Join(commands, " && ")
 		cmd = exec.Command("sh", "-c", joinedCmds)
 	}
 
-	// Thực thi và thu thập đồng thời cả stdout và stderr
+	// Execute and get the stdout and stderr
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return string(output), fmt.Errorf("lỗi thực thi kịch bản [%v]: %w", err, err)
+		return string(output), fmt.Errorf("Error while running commands [%v]: %w", err, err)
 	}
 
 	return string(output), nil
-}
-
-func main() {
-	// Cách 1: Truyền trực tiếp danh sách tham số variadic
-	out1, err := ExecuteCommands(
-		"echo === STEP 1 ===",
-		"uptime",
-		"echo === STEP 2 ===",
-	)
-	if err != nil {
-		fmt.Println("Lỗi:", err)
-	}
-	fmt.Println(out1)
-
-	// Cách 2: Truyền từ struct TerminalScript (commands []string) trong app Gio UI của bạn
-	cmds := []string{
-		"echo 'Shutting down service...'",
-		"echo 'Done!'",
-	}
-	out2, _ := ExecuteCommands(cmds...)
-	fmt.Println(out2)
 }

@@ -1,7 +1,6 @@
 package state
 
 import (
-	"labor-app/ui/components"
 	"sync"
 	"time"
 
@@ -14,13 +13,6 @@ const (
 	HostActionTurnOn HostAction = iota
 	HostActionShutdown
 )
-
-type AppState struct {
-	NameInput   widget.Editor
-	SelectedTab components.Tab
-	BtnServer   widget.Clickable
-	BtnWSL      widget.Clickable
-}
 
 type TerminalScript struct {
 	Action   HostAction
@@ -37,9 +29,7 @@ type HostState struct {
 	TurnOnScript   TerminalScript
 	ShutdownScript TerminalScript
 
-	// State cho Gio UI Widget
-	BtnTurnOn   widget.Clickable
-	BtnShutdown widget.Clickable
+	BtnPower widget.Clickable
 
 	Mu sync.Mutex
 }
