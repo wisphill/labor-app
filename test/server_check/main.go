@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	server "labor-app/cmd/host"
 	"labor-app/cmd/server_check"
 	"time"
 )
@@ -17,4 +18,11 @@ func main() {
 			fmt.Printf("❌ %s is OFFLINE\n", host)
 		}
 	}
+
+	out, err := server.GetRunningWSLNodes()
+	if err != nil {
+		return
+	}
+
+	fmt.Println("Running WSL Nodes ", out)
 }
