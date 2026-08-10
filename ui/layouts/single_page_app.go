@@ -2,6 +2,7 @@ package layouts
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	server "labor-app/cmd/host"
 	"labor-app/ui/components"
@@ -10,6 +11,9 @@ import (
 
 	"gioui.org/font"
 	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -48,6 +52,91 @@ func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
 }
 
 func (app *SinglePageApp) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
+	// Ví dụ: Đặt nút Shutdown ở góc dưới bên phải màn hình mà không ảnh hưởng tới danh sách
+	return layout.Stack{}.Layout(gtx,
+		// Lớp 1: Danh sách hiện tại của bạn
+		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
+			return app.LayoutMainContent(gtx, th)
+		}),
+
+		// Lớp 2: Thành phần nổi đặt ở góc dưới bên phải (Expanded / SE - South East)
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			// layout.S giúp neo component ở sát viền đáy (South)
+			return layout.S.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return app.layoutBottomLogBar(gtx, th)
+			})
+		}),
+	)
+}
+
+// Bảng Log đè lên dưới đáy
+func (app *SinglePageApp) layoutBottomLogBar(gtx layout.Context, th *material.Theme) layout.Dimensions {
+	// Cách lề xung quanh bảng log
+	return layout.Inset{
+		Bottom: unit.Dp(10),
+		Left:   unit.Dp(300),
+		Right:  unit.Dp(300),
+	}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		// Nền đen tuyệt đối cho Terminal
+		bgColor := color.NRGBA{R: 0, G: 0, B: 0, A: 255}
+		macro := op.Record(gtx.Ops)
+
+		dims := widget.Border{
+			Color:        color.NRGBA{R: 50, G: 50, B: 50, A: 255}, // Viền xám tối
+			Width:        unit.Dp(1),
+			CornerRadius: unit.Dp(8),
+		}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+
+			return layout.Inset{
+				Top:    unit.Dp(10),
+				Bottom: unit.Dp(10),
+				Left:   unit.Dp(14),
+				Right:  unit.Dp(14),
+			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+
+				// Bố cục ngang cho dòng log terminal
+				return layout.Flex{
+					Axis:      layout.Horizontal,
+					Alignment: layout.Middle,
+				}.Layout(gtx,
+					// Dấu nhắc (Prompt) của terminal
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						lbl := material.Body2(th, "$ ")
+						lbl.Color = color.NRGBA{R: 0, G: 255, B: 0, A: 255} // Xanh Terminal
+						lbl.Font.Typeface = "IBM Plex Mono"                 // Ưu tiên font này, thiếu sẽ fallback
+						lbl.Font.Weight = font.Bold
+						return lbl.Layout(gtx)
+					}),
+					// Nội dung log
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						lbl := material.Body2(th, "Starting WSL node 'ubuntu-dev'...")
+						lbl.Color = color.NRGBA{R: 0, G: 255, B: 0, A: 255} // Xanh Terminal
+						lbl.Font.Typeface = "IBM Plex Mono"                 // Ưu tiên font này, thiếu sẽ fallback
+						return lbl.Layout(gtx)
+					}),
+				)
+			})
+		})
+
+		// Vẽ nền đen bo góc phía dưới
+		call := macro.Stop()
+		rr := gtx.Dp(unit.Dp(8))
+		paint.FillShape(
+			gtx.Ops,
+			bgColor,
+			clip.RRect{
+				Rect: image.Rectangle{Max: dims.Size},
+				NE:   rr, NW: rr, SE: rr, SW: rr,
+			}.Op(gtx.Ops),
+		)
+		call.Add(gtx.Ops)
+
+		return dims
+	})
+}
+
+func (app *SinglePageApp) LayoutMainContent(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	// setting global configs for the layout
 	app.wslList.Axis = layout.Horizontal
 
@@ -238,10 +327,7 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 	})
 }
 
-func (app *SinglePageApp) layoutWSLNodes(
-	gtx layout.Context,
-	th *material.Theme,
-) layout.Dimensions {
+func (app *SinglePageApp) layoutWSLNodes(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	allWslNodes := make([]*state.WSLState, 0)
 	for _, host := range app.hosts {
 		allWslNodes = append(allWslNodes, host.Wsls...)
