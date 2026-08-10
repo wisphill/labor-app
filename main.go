@@ -122,13 +122,13 @@ func fetchWSLNodes(hostItems []*state.HostState, w *app.Window) {
 				}
 
 				h.Mu.Lock()
+				h.Wsls = make([]*state.WSLState, 0)
 				for _, wslNode := range wslNodes {
 					h.Wsls = append(h.Wsls, &state.WSLState{
 						Name: wslNode,
 					})
 				}
 
-				h.Wsls = make([]*state.WSLState, 0)
 				h.Mu.Unlock()
 			}(host, addr)
 		}
