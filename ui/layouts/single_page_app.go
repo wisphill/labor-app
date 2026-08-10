@@ -8,6 +8,7 @@ import (
 	"labor-app/ui/components"
 	"labor-app/ui/state"
 	"log"
+	"time"
 
 	"gioui.org/font"
 	"gioui.org/layout"
@@ -25,7 +26,10 @@ type SinglePageApp struct {
 	shutdownIcon *components.SVGRenderer
 	serverIcon   *components.SVGRenderer
 
-	wslList layout.List
+	LogChan         chan string
+	DisplayedLogMsg string
+	ShowLogBar      bool
+	wslList         layout.List
 }
 
 func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
@@ -48,6 +52,8 @@ func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
 		hosts:        hostStates,
 		shutdownIcon: shutdownIcon,
 		serverIcon:   serverIcon,
+		ShowLogBar:   false,
+		LogChan:      make(chan string),
 	}
 }
 
@@ -62,6 +68,9 @@ func (app *SinglePageApp) Layout(gtx layout.Context, th *material.Theme) layout.
 
 		// Lớp 2: Thành phần nổi đặt ở góc dưới bên phải (Expanded / SE - South East)
 		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			if !app.ShowLogBar {
+				return layout.Dimensions{}
+			}
 			// layout.S giúp neo component ở sát viền đáy (South)
 			return layout.S.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return app.layoutBottomLogBar(gtx, th)
@@ -110,7 +119,7 @@ func (app *SinglePageApp) layoutBottomLogBar(gtx layout.Context, th *material.Th
 					}),
 					// Nội dung log
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						lbl := material.Body2(th, "Starting WSL node 'ubuntu-dev'...")
+						lbl := material.Body2(th, app.DisplayedLogMsg)
 						lbl.Color = color.NRGBA{R: 0, G: 255, B: 0, A: 255} // Xanh Terminal
 						lbl.Font.Typeface = "IBM Plex Mono"                 // Ưu tiên font này, thiếu sẽ fallback
 						return lbl.Layout(gtx)
@@ -180,9 +189,9 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 	isPowerButtonClicked := host.BtnPower.Clicked(gtx) // consume the event
 	if isPowerButtonClicked {
 		if isOnline {
-			go server.TurnOffServer()
+			go app.WaitForServerShutdown()
 		} else if !isOnline {
-			go server.TurnOnServer()
+			go app.WaitForServerStart()
 		}
 	}
 
@@ -433,4 +442,55 @@ func (app *SinglePageApp) layoutWSLNode(
 			})
 		})
 	})
+}
+
+func (app *SinglePageApp) WaitForServerShutdown() {
+	app.LogChan <- "Server is shutting down!"
+	server.TurnOffServer()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	pingTimeout := 1 * time.Second
+
+	for {
+		select {
+		case <-ticker.C:
+			app.LogChan <- "Server is shutting down! Checking the server"
+			isOnline, _ := server.PingOS("yuu", time.Duration(pingTimeout))
+			if !isOnline {
+				ticker.Stop()
+
+				app.LogChan <- "Server is shutted down!"
+				time.Sleep(time.Duration(2 * time.Second))
+				app.LogChan <- ""
+				return
+			}
+		}
+	}
+}
+
+func (app *SinglePageApp) WaitForServerStart() {
+	app.LogChan <- "Server is starting!"
+	server.TurnOnServer()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	pingTimeout := 1 * time.Second
+
+	for {
+		select {
+		case <-ticker.C:
+			app.LogChan <- "Server is turning on! Checking the server"
+			isOnline, _ := server.PingOS("yuu", time.Duration(pingTimeout))
+			if isOnline {
+				ticker.Stop()
+				app.LogChan <- "Server is turned on!"
+				time.Sleep(time.Duration(2 * time.Second))
+				app.LogChan <- ""
+				return
+			}
+		}
+	}
 }

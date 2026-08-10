@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	server "labor-app/cmd/host"
-	"labor-app/cmd/server_check"
 	"labor-app/ui/layouts"
 	"labor-app/ui/state"
 	"log"
@@ -56,7 +55,8 @@ func run(w *app.Window) error {
 
 	// background worker to check the hosts
 	go pingToServer(hostStates, w)
-	go fetchWSLNodes(hostStates, w)
+	go fetchWSLNodes(w, hostStates)
+	go startLogListener(w, singlePageApp)
 
 	// handle frame events and other events
 	for {
@@ -89,7 +89,7 @@ func pingToServer(hostItems []*state.HostState, w *app.Window) {
 			wg.Add(1)
 			go func(h *state.HostState, address string) {
 				defer wg.Done()
-				online, rtt := server_check.PingOS(address, 1500*time.Millisecond)
+				online, rtt := server.PingOS(address, 1500*time.Millisecond)
 
 				h.Mu.Lock()
 				h.IsOnline = online
@@ -104,7 +104,7 @@ func pingToServer(hostItems []*state.HostState, w *app.Window) {
 	}
 }
 
-func fetchWSLNodes(hostItems []*state.HostState, w *app.Window) {
+func fetchWSLNodes(window *app.Window, hostItems []*state.HostState) {
 	for {
 		var wg sync.WaitGroup
 		for _, host := range hostItems {
@@ -133,8 +133,29 @@ func fetchWSLNodes(hostItems []*state.HostState, w *app.Window) {
 			}(host, addr)
 		}
 		wg.Wait()
-
-		w.Invalidate()
+		window.Invalidate()
 		time.Sleep(3 * time.Second)
 	}
+}
+
+func startLogListener(window *app.Window, pageApp *layouts.SinglePageApp) {
+	go func() {
+		// Vòng lặp range tự động thoát khi logChan bị gọi close()
+		for msg := range pageApp.LogChan {
+			if msg == "" {
+				pageApp.ShowLogBar = false // Gửi "" -> Ẩn log bar
+			} else {
+				pageApp.DisplayedLogMsg = msg
+				pageApp.ShowLogBar = true // Gửi text -> Hiện log bar
+			}
+
+			window.Invalidate() // Đánh thức Gio vẽ lại UI
+		}
+
+		// Khi channel bị close(logChan) hoàn toàn -> Tự ẩn log bar
+		pageApp.ShowLogBar = false
+		if window != nil {
+			window.Invalidate()
+		}
+	}()
 }
