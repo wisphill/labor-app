@@ -162,6 +162,15 @@ func (app *SinglePageApp) LayoutMainContent(gtx layout.Context, th *material.The
 			)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			wslNodesLen := 0
+			for _, host := range app.hosts {
+				wslNodesLen += len(host.Wsls)
+			}
+
+			if wslNodesLen == 0 {
+				return layout.Dimensions{}
+			}
+
 			return layout.Inset{
 				Left: unit.Dp(16),
 			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {

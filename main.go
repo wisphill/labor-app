@@ -1,5 +1,10 @@
 package main
 
+/*
+#cgo darwin LDFLAGS: -framework Cocoa
+#include "center_mac.h"
+*/
+import "C"
 import (
 	"fmt"
 	server "labor-app/cmd/host"
@@ -19,13 +24,14 @@ import (
 )
 
 func main() {
+	C.installWindowCentering()
 	go func() {
 		w := new(app.Window)
 		w.Option(
-			app.Title("Labor management"),
-			app.Size(unit.Dp(1024), unit.Dp(768)),
-			app.MinSize(unit.Dp(820), unit.Dp(600)),
-			app.Maximized.Option(),
+			app.Title("Laboratory management"),
+			app.Size(unit.Dp(820), unit.Dp(404)),
+			app.MinSize(unit.Dp(820), unit.Dp(404)),
+			app.MaxSize(unit.Dp(820), unit.Dp(404)),
 		)
 		if err := run(w); err != nil {
 			log.Fatal(err)
@@ -50,7 +56,6 @@ func run(w *app.Window) error {
 			Address: "Yuu.local",
 		},
 	}
-
 	singlePageApp := layouts.NewSinglePageApp(hostStates)
 
 	// background worker to check the hosts
