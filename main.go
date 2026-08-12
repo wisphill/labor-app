@@ -8,8 +8,10 @@ import "C"
 import (
 	"fmt"
 	server "labor-app/cmd/host"
+	"labor-app/platform/darwin"
 	"labor-app/ui/layouts"
 	"labor-app/ui/state"
+	uitray "labor-app/ui/tray"
 	"log"
 	"os"
 	"sync"
@@ -23,17 +25,9 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/gogpu/systray"
-
-	_ "embed"
 )
 
-// Embed the icon.ico (in the same folder with main.go)
-//
-//go:embed icon.ico
-var iconBytes []byte
-
 func main() {
-
 	C.installWindowCentering()
 	go func() {
 		w := new(app.Window)
@@ -50,25 +44,17 @@ func main() {
 	}()
 
 	tray := systray.New()
-	menu := systray.NewMenu()
-
-	menu.Add("Open", func() {
-		log.Println("Open clicked")
-	})
-	menu.AddSeparator()
-	menu.Add("Quit", func() {
-		tray.Remove()
-	})
-
-	tray.
-		SetIcon(iconBytes).
-		SetTooltip("Laboratory management").
-		SetMenu(menu).
-		Show()
-
+	uitray.SetupTray(tray)
 	go func() {
 		if err := tray.Run(); err != nil {
 			log.Println(err)
+		}
+	}()
+
+	// 1. run auto-start on the separated goroutine
+	go func() {
+		if err := darwin.EnableStartAtLogin(); err != nil {
+			log.Printf("[WARNING] EnableStartAtLogin failed: %v", err)
 		}
 	}()
 
