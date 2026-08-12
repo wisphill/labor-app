@@ -21,9 +21,19 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 	"github.com/joho/godotenv"
+
+	"github.com/gogpu/systray"
+
+	_ "embed"
 )
 
+// Embed the icon.ico (in the same folder with main.go)
+//
+//go:embed icon.ico
+var iconBytes []byte
+
 func main() {
+
 	C.installWindowCentering()
 	go func() {
 		w := new(app.Window)
@@ -38,6 +48,30 @@ func main() {
 		}
 		os.Exit(0)
 	}()
+
+	tray := systray.New()
+	menu := systray.NewMenu()
+
+	menu.Add("Open", func() {
+		log.Println("Open clicked")
+	})
+	menu.AddSeparator()
+	menu.Add("Quit", func() {
+		tray.Remove()
+	})
+
+	tray.
+		SetIcon(iconBytes).
+		SetTooltip("Laboratory management").
+		SetMenu(menu).
+		Show()
+
+	go func() {
+		if err := tray.Run(); err != nil {
+			log.Println(err)
+		}
+	}()
+
 	app.Main()
 }
 
