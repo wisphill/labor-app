@@ -10,20 +10,13 @@ import (
 	"strconv"
 )
 
-const Label = "com.myapp.laboratory"
+const Label = "com.wisphill.laboratory"
 
 func plistPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("error while getting home dir")
 	}
-
-	fmt.Println(filepath.Join(
-		home,
-		"Library",
-		"LaunchAgents",
-		Label+".plist",
-	))
 
 	return filepath.Join(
 		home,
@@ -90,23 +83,6 @@ func EnableStartAtLogin() error {
 		fmt.Printf("Error while removing old registration %v\n", err)
 	}
 
-	// Register the new LaunchAgent.
-	cmd := exec.Command(
-		"launchctl",
-		"bootstrap",
-		domain,
-		path,
-	)
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf(
-			"launchctl bootstrap: %w: %s",
-			err,
-			output,
-		)
-	}
-
 	return nil
 }
 
@@ -115,16 +91,6 @@ func DisableStartAtLogin() error {
 	if err != nil {
 		return err
 	}
-
-	uid := strconv.Itoa(os.Getuid())
-	domain := "gui/" + uid
-
-	_ = exec.Command(
-		"launchctl",
-		"bootout",
-		domain,
-		path,
-	).Run()
 
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		return err
