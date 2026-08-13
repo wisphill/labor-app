@@ -18,6 +18,13 @@ func plistPath() (string, error) {
 		return "", fmt.Errorf("error while getting home dir")
 	}
 
+	fmt.Println(filepath.Join(
+		home,
+		"Library",
+		"LaunchAgents",
+		Label+".plist",
+	))
+
 	return filepath.Join(
 		home,
 		"Library",
@@ -68,16 +75,20 @@ func EnableStartAtLogin() error {
 `, Label, executable)
 
 	if err := os.WriteFile(path, []byte(plist), 0644); err != nil {
+		fmt.Printf("Error while writing plist files")
 		return err
 	}
 
 	// Remove old registration if it exists.
-	_ = exec.Command(
+	err = exec.Command(
 		"launchctl",
 		"bootout",
 		domain,
 		path,
 	).Run()
+	if err != nil {
+		fmt.Printf("Error while removing old registration %v\n", err)
+	}
 
 	// Register the new LaunchAgent.
 	cmd := exec.Command(

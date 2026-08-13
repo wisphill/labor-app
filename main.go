@@ -9,7 +9,6 @@ import (
 	"fmt"
 	server "labor-app/cmd/host"
 	"labor-app/config"
-	"labor-app/platform/darwin"
 	"labor-app/ui/layouts"
 	"labor-app/ui/state"
 	uitray "labor-app/ui/tray"
@@ -29,6 +28,10 @@ import (
 
 func main() {
 	C.installWindowCentering()
+
+	tray := systray.New()
+	uitray.SetupTray(tray)
+
 	go func() {
 		w := new(app.Window)
 		w.Option(
@@ -41,21 +44,6 @@ func main() {
 			log.Fatal(err)
 		}
 		os.Exit(0)
-	}()
-
-	tray := systray.New()
-	uitray.SetupTray(tray)
-	go func() {
-		if err := tray.Run(); err != nil {
-			log.Println(err)
-		}
-	}()
-
-	// 1. run auto-start on the separated goroutine
-	go func() {
-		if err := darwin.EnableStartAtLogin(); err != nil {
-			log.Printf("[WARNING] EnableStartAtLogin failed: %v", err)
-		}
 	}()
 
 	app.Main()
