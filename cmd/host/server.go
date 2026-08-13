@@ -47,8 +47,11 @@ func TurnOffServer() {
 	}
 }
 
-func TurnOnServer() {
+func TurnOnServer() error {
 	telegramBotToken := os.Getenv("TELEGRAM_BOT_TOKEN")
+	if telegramBotToken == "" {
+		return fmt.Errorf("Cannot find the telegram bot token. Configure at .labor_app/config")
+	}
 	command := fmt.Sprintf(
 		`curl -s -X POST "https://api.telegram.org/bot%s/sendMessage" -d chat_id="-5115557042" -d text="/wake"`,
 		telegramBotToken,
@@ -56,7 +59,10 @@ func TurnOnServer() {
 	_, err := executor.ExecuteCommands(command)
 	if err != nil {
 		fmt.Printf("Error while processing turning the server on %v", err)
+		return err
 	}
+
+	return nil
 }
 
 func GetRunningWSLNodes() ([]string, error) {

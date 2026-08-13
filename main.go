@@ -8,6 +8,7 @@ import "C"
 import (
 	"fmt"
 	server "labor-app/cmd/host"
+	"labor-app/config"
 	"labor-app/platform/darwin"
 	"labor-app/ui/layouts"
 	"labor-app/ui/state"
@@ -22,7 +23,6 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
-	"github.com/joho/godotenv"
 
 	"github.com/gogpu/systray"
 )
@@ -65,9 +65,12 @@ func run(w *app.Window) error {
 	th := material.NewTheme()
 	var ops op.Ops
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err := config.EnsureConfig(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := config.Load(); err != nil {
+		log.Fatal(err)
 	}
 
 	hostStates := []*state.HostState{

@@ -481,7 +481,11 @@ func (app *SinglePageApp) WaitForServerShutdown() {
 
 func (app *SinglePageApp) WaitForServerStart() {
 	app.LogChan <- "Server is starting!"
-	server.TurnOnServer()
+	err := server.TurnOnServer()
+	if err != nil {
+		app.LogChan <- fmt.Sprintf("Error while starting the server %v", err)
+		return
+	}
 
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
