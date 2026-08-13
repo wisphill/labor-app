@@ -1,7 +1,40 @@
 package main
 
 /*
+#cgo darwin CFLAGS: -x objective-c
 #cgo darwin LDFLAGS: -framework Cocoa
+#import <Cocoa/Cocoa.h>
+#import <objc/runtime.h>
+
+// Con trỏ lưu lại hàm gốc của macOS
+static IMP original_setActivationPolicy;
+
+// HÀM GIẢ MẠO: Bất kể ai (kể cả Gio UI) gọi đổi Policy, ta đều ép nó về Accessory (1)
+BOOL hook_setActivationPolicy(id self, SEL _cmd, NSApplicationActivationPolicy policy) {
+    BOOL (*original)(id, SEL, NSApplicationActivationPolicy) = (void *)original_setActivationPolicy;
+    // Bỏ qua biến policy được truyền vào, luôn bắt macOS chạy Accessory
+    return original(self, _cmd, NSApplicationActivationPolicyAccessory);
+}
+
+// Hàm này sẽ đánh tráo hàm gốc của hệ điều hành
+void forceAccessoryForever() {
+    Method method = class_getInstanceMethod([NSApplication class], @selector(setActivationPolicy:));
+    original_setActivationPolicy = method_getImplementation(method);
+    method_setImplementation(method, (IMP)hook_setActivationPolicy);
+
+    // Ép policy ngay lúc này luôn để chắc chắn
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
+    });
+}
+
+// Ép macOS focus vào cửa sổ (vì app ẩn Dock sẽ bị mất khả năng tự focus)
+void forceActivateApp() {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [NSApp activateIgnoringOtherApps:YES];
+    });
+}
+
 #include "center_mac.h"
 */
 import "C"
@@ -13,7 +46,6 @@ import (
 	"labor-app/ui/state"
 	uitray "labor-app/ui/tray"
 	"log"
-	"os"
 	"sync"
 	"time"
 
@@ -33,6 +65,9 @@ var (
 )
 
 func main() {
+	// BƯỚC 1: Đánh tráo hàm hệ điều hành ngay dòng đầu tiên
+	// Từ bây giờ, Gio UI có gọi lệnh hiện Dock cũng sẽ bị chặn đứng!
+	C.forceAccessoryForever()
 	C.installWindowCentering()
 
 	tray := systray.New()
@@ -46,38 +81,41 @@ func main() {
 // openGioWindow mở cửa sổ Gio UI hoặc đưa cửa sổ đã có lên trên cùng
 func openGioWindow() {
 	winMutex.Lock()
-	defer winMutex.Unlock()
 
-	// Nếu cửa sổ đã mở -> Kéo lên trên cùng (Raise)
+	// Nếu cửa sổ đã mở -> Kéo lên trên cùng
 	if activeWin != nil {
 		activeWin.Perform(system.ActionRaise)
+		winMutex.Unlock()
+
+		// Ép macOS focus
+		C.forceActivateApp()
 		return
 	}
 
-	// Nếu chưa mở -> Mở cửa sổ Gio UI mới
+	// Nếu chưa mở -> Tạo cửa sổ mới
+	w := new(app.Window)
+	w.Option(
+		app.Title("Laboratory management"),
+		app.Size(unit.Dp(820), unit.Dp(404)),
+		app.MinSize(unit.Dp(820), unit.Dp(404)),
+		app.MaxSize(unit.Dp(820), unit.Dp(404)),
+	)
+
+	activeWin = w
+	winMutex.Unlock()
+
+	// Ép macOS focus vào cửa sổ mới
+	C.forceActivateApp()
+
+	// Chạy vòng lặp render window
 	go func() {
-		w := new(app.Window)
-		w.Option(
-			app.Title("Laboratory management"),
-			app.Size(unit.Dp(820), unit.Dp(404)),
-			app.MinSize(unit.Dp(820), unit.Dp(404)),
-			app.MaxSize(unit.Dp(820), unit.Dp(404)),
-		)
-
-		winMutex.Lock()
-		activeWin = w
-		winMutex.Unlock()
-
 		if err := run(w); err != nil {
-			log.Fatal(err)
+			log.Println("Window closed with error:", err)
 		}
 
-		// Reset activeWin khi người dùng bấm [X] tắt cửa sổ
 		winMutex.Lock()
 		activeWin = nil
 		winMutex.Unlock()
-
-		os.Exit(0)
 	}()
 }
 
