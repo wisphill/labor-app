@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"gioui.org/app"
+	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
@@ -26,12 +27,34 @@ import (
 	"github.com/gogpu/systray"
 )
 
+var (
+	winMutex  sync.Mutex
+	activeWin *app.Window
+)
+
 func main() {
 	C.installWindowCentering()
 
 	tray := systray.New()
-	uitray.SetupTray(tray)
+	uitray.SetupTray(tray, func() {
+		openGioWindow()
+	})
 
+	app.Main()
+}
+
+// openGioWindow mở cửa sổ Gio UI hoặc đưa cửa sổ đã có lên trên cùng
+func openGioWindow() {
+	winMutex.Lock()
+	defer winMutex.Unlock()
+
+	// Nếu cửa sổ đã mở -> Kéo lên trên cùng (Raise)
+	if activeWin != nil {
+		activeWin.Perform(system.ActionRaise)
+		return
+	}
+
+	// Nếu chưa mở -> Mở cửa sổ Gio UI mới
 	go func() {
 		w := new(app.Window)
 		w.Option(
@@ -40,13 +63,22 @@ func main() {
 			app.MinSize(unit.Dp(820), unit.Dp(404)),
 			app.MaxSize(unit.Dp(820), unit.Dp(404)),
 		)
+
+		winMutex.Lock()
+		activeWin = w
+		winMutex.Unlock()
+
 		if err := run(w); err != nil {
 			log.Fatal(err)
 		}
+
+		// Reset activeWin khi người dùng bấm [X] tắt cửa sổ
+		winMutex.Lock()
+		activeWin = nil
+		winMutex.Unlock()
+
 		os.Exit(0)
 	}()
-
-	app.Main()
 }
 
 func run(w *app.Window) error {

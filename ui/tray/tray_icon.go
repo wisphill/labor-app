@@ -14,7 +14,7 @@ import (
 //go:embed icon.ico
 var iconBytes []byte
 
-func SetupTray(tray *systray.SystemTray) {
+func SetupTray(tray *systray.SystemTray, onClickAdmin func()) {
 	menu := systray.NewMenu()
 
 	menu.Add("Open", func() {
@@ -51,10 +51,12 @@ func SetupTray(tray *systray.SystemTray) {
 	})
 
 	menu.AddSeparator()
-
 	menu.Add("Quit", func() {
 		tray.Remove()
 	})
+
+	menu.AddSeparator()
+	menu.Add("Open Admin App", onClickAdmin)
 
 	tray.
 		SetIcon(iconBytes).
