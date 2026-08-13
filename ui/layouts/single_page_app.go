@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"labor-app/assets"
 	server "labor-app/cmd/host"
 	"labor-app/ui/components"
 	"labor-app/ui/state"
@@ -18,6 +19,8 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+
+	_ "embed"
 )
 
 type SinglePageApp struct {
@@ -34,11 +37,11 @@ type SinglePageApp struct {
 
 func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
 	// Khởi tạo ở ngoài vòng lặp sự kiện (Event Loop)
-	shutdownIcon, err := components.LoadSVG("assets/shutdown.svg", 24, 24, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+	shutdownIcon, err := components.LoadSVG(assets.ShutdownSVG, 24, 24, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
 	if err != nil {
 		log.Fatalf("Error whil loading SVG: %v", err)
 	}
-	serverIcon, err := components.LoadSVG("assets/server.svg", 30, 30, color.NRGBA{R: 0, G: 0, B: 0, A: 255})
+	serverIcon, err := components.LoadSVG(assets.ServerSVG, 30, 30, color.NRGBA{R: 0, G: 0, B: 0, A: 255})
 	if err != nil {
 		log.Fatalf("Error whil loading SVG: %v", err)
 	}

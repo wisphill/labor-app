@@ -1,9 +1,9 @@
 package components
 
 import (
+	"bytes"
 	"image"
 	"image/color"
-	"os"
 
 	"gioui.org/layout"
 	"gioui.org/op/paint"
@@ -21,15 +21,9 @@ type SVGRenderer struct {
 // Nếu tintColor = nil, giữ nguyên màu gốc của file SVG.
 // LoadSVG đọc file .svg, hỗ trợ đổi màu (tintColor) bao gồm cả kênh Alpha (độ trong suốt)
 // Nếu tintColor = nil, giữ nguyên màu gốc của file SVG.
-func LoadSVG(filepath string, width, height int, tintColor color.Color) (*SVGRenderer, error) {
-	file, err := os.Open(filepath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
+func LoadSVG(data []byte, width, height int, tintColor color.Color) (*SVGRenderer, error) {
 	// 1. Parse file SVG
-	icon, err := oksvg.ReadIconStream(file)
+	icon, err := oksvg.ReadIconStream(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
