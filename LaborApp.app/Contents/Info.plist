@@ -11,7 +11,7 @@
     <key>CFBundleIconFile</key>
     <string>icon.icns</string>
 
-    <!-- ĐÂY LÀ CHÌA KHÓA: Chặn macOS hiện Dock icon ngay từ giây đầu tiên -->
+    <!-- Mark the application as a systray application -->
     <key>LSUIElement</key>
     <true/>
 </dict>
