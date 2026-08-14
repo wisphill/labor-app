@@ -1,10 +1,13 @@
 package uitray
 
 import (
-	server "labor-app/cmd/host"
+	"context"
+	"fmt"
 	"labor-app/platform/darwin"
+	"labor-app/ui/state"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gogpu/systray"
 
@@ -16,20 +19,44 @@ import (
 //go:embed icon.ico
 var iconBytes []byte
 
-func SetupTray(tray *systray.SystemTray, onClickAdmin func()) {
+func SetupTray(ctx context.Context, host *state.HostState, tray *systray.SystemTray, onClickAdmin func()) {
 	menu := systray.NewMenu()
 
 	menu.Add("Open", onClickAdmin)
-	menu.Add("Turn on server", func() {
-		go server.TurnOnServer()
-	})
-	menu.Add("Turn off server", func() {
-		go server.TurnOffServer()
+	serverItem := menu.Add("Server is loading", func() {
+		host.Mu.Lock()
+		isOnline := host.IsOnline
+		host.Mu.Unlock()
+
+		if isOnline {
+			host.ServerSignal <- false
+		} else {
+			host.ServerSignal <- true
+			fmt.Println("Clicked to turn on the server nowwww")
+		}
 	})
 
-	// 1. Kiểm tra trạng thái hiện tại (nếu có hàm check)
-	isAutoStart := darwin.IsStartAtLoginEnabled() // Hoặc mặc định là true/false
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 
+		for _ = range ticker.C {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				host.Mu.Lock()
+				if host.IsOnline {
+					serverItem.SetLabel("Turn off server")
+				} else {
+					serverItem.SetLabel("Turn on server")
+				}
+				host.Mu.Unlock()
+			}
+		}
+	}()
+
+	isAutoStart := darwin.IsStartAtLoginEnabled()
 	var autoStartItem *systray.MenuItem
 
 	// 2. Tạo menu item checkbox

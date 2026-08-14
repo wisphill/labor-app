@@ -39,8 +39,8 @@ void forceActivateApp() {
 */
 import "C"
 import (
+	"context"
 	"fmt"
-	server "labor-app/cmd/host"
 	"labor-app/config"
 	"labor-app/ui/layouts"
 	"labor-app/ui/state"
@@ -65,21 +65,31 @@ var (
 )
 
 func main() {
-	// BƯỚC 1: Đánh tráo hàm hệ điều hành ngay dòng đầu tiên
-	// Từ bây giờ, Gio UI có gọi lệnh hiện Dock cũng sẽ bị chặn đứng!
 	C.forceAccessoryForever()
 	C.installWindowCentering()
 
+	appCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	host := &state.HostState{
+		Name:         "Main Server (Yuu, Kubernetes, WSL, Window Server)",
+		Address:      "Yuu.local",
+		ServerSignal: make(chan bool),
+	}
+
+	go host.PingToServerLoop(appCtx)
+	go host.FetchWSLNodesLoop(appCtx)
+	go host.HandleServerSignal(appCtx)
+
 	tray := systray.New()
-	uitray.SetupTray(tray, func() {
-		openGioWindow()
+	uitray.SetupTray(appCtx, host, tray, func() {
+		openGioWindow(host)
 	})
 
 	app.Main()
 }
 
 // openGioWindow mở cửa sổ Gio UI hoặc đưa cửa sổ đã có lên trên cùng
-func openGioWindow() {
+func openGioWindow(host *state.HostState) {
 	winMutex.Lock()
 
 	// Nếu cửa sổ đã mở -> Kéo lên trên cùng
@@ -109,7 +119,7 @@ func openGioWindow() {
 
 	// Chạy vòng lặp render window
 	go func() {
-		if err := run(w); err != nil {
+		if err := run(w, host); err != nil {
 			log.Println("Window closed with error:", err)
 		}
 
@@ -119,7 +129,10 @@ func openGioWindow() {
 	}()
 }
 
-func run(w *app.Window) error {
+func run(w *app.Window, host *state.HostState) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	th := material.NewTheme()
 	var ops op.Ops
 
@@ -131,17 +144,11 @@ func run(w *app.Window) error {
 		log.Fatal(err)
 	}
 
-	hostStates := []*state.HostState{
-		{
-			Name:    "Main Server (Yuu, Kubernetes, WSL, Window Server)",
-			Address: "Yuu.local",
-		},
-	}
-	singlePageApp := layouts.NewSinglePageApp(hostStates)
+	singlePageApp := layouts.NewSinglePageApp(host)
 
 	// background worker to check the hosts
-	go pingToServer(hostStates, w)
-	go fetchWSLNodes(w, hostStates)
+	go fetchServerUI(ctx, host, w)
+	go fetchWSLUI(ctx, w, host)
 	go startLogListener(w, singlePageApp)
 
 	// handle frame events and other events
@@ -149,7 +156,8 @@ func run(w *app.Window) error {
 		e := w.Event()
 		switch e := e.(type) {
 		case app.DestroyEvent:
-			return e.Err
+			cancel()
+			return nil
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 
@@ -164,63 +172,51 @@ func run(w *app.Window) error {
 	}
 }
 
-func pingToServer(hostItems []*state.HostState, w *app.Window) {
+func fetchServerUI(ctx context.Context, host *state.HostState, w *app.Window) {
+	host.Mu.Lock()
+	currentHostStatus := host.IsOnline
+	host.Mu.Unlock()
 	for {
-		var wg sync.WaitGroup
-		for _, host := range hostItems {
+		select {
+		case <-ctx.Done():
+			return
+
+		default:
+			time.Sleep(3 * time.Second)
 			host.Mu.Lock()
-			addr := host.Address
+			if currentHostStatus == host.IsOnline {
+				host.Mu.Unlock()
+				continue
+			}
+
+			currentHostStatus = host.IsOnline
 			host.Mu.Unlock()
-
-			wg.Add(1)
-			go func(h *state.HostState, address string) {
-				defer wg.Done()
-				online, rtt := server.PingOS(address, 1500*time.Millisecond)
-
-				h.Mu.Lock()
-				h.IsOnline = online
-				h.PingRTT = rtt
-				h.Mu.Unlock()
-			}(host, addr)
+			fmt.Println("Invalidate UI")
+			w.Invalidate()
 		}
-		wg.Wait()
-
-		w.Invalidate()
-		time.Sleep(3 * time.Second)
 	}
 }
 
-func fetchWSLNodes(window *app.Window, hostItems []*state.HostState) {
+func fetchWSLUI(ctx context.Context, w *app.Window, host *state.HostState) {
+	host.Mu.Lock()
+	currentWslList := len(host.Wsls)
+	host.Mu.Unlock()
 	for {
-		fmt.Println("Fetching the WSL Nodes")
-		var wg sync.WaitGroup
-		for _, host := range hostItems {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(3 * time.Second)
 			host.Mu.Lock()
-			addr := host.Address
+			if currentWslList == len(host.Wsls) {
+				host.Mu.Unlock()
+				continue
+			}
+
+			currentWslList = len(host.Wsls)
 			host.Mu.Unlock()
-
-			wg.Add(1)
-			go func(h *state.HostState, address string) {
-				defer wg.Done()
-				wslNodes, err := server.GetRunningWSLNodes()
-				h.Mu.Lock()
-				defer h.Mu.Unlock()
-				h.Wsls = make([]*state.WSLState, 0)
-				if err != nil {
-					fmt.Println("Error while getting the WSL nodes")
-					return
-				}
-
-				for _, wslNode := range wslNodes {
-					h.Wsls = append(h.Wsls, &state.WSLState{
-						Name: wslNode,
-					})
-				}
-			}(host, addr)
+			w.Invalidate()
 		}
-		wg.Wait()
-		window.Invalidate()
-		time.Sleep(3 * time.Second)
 	}
 }
 

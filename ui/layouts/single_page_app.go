@@ -24,7 +24,7 @@ import (
 )
 
 type SinglePageApp struct {
-	hosts        []*state.HostState
+	host         *state.HostState
 	list         widget.List
 	shutdownIcon *components.SVGRenderer
 	serverIcon   *components.SVGRenderer
@@ -35,7 +35,7 @@ type SinglePageApp struct {
 	wslList         layout.List
 }
 
-func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
+func NewSinglePageApp(host *state.HostState) *SinglePageApp {
 	// Khởi tạo ở ngoài vòng lặp sự kiện (Event Loop)
 	shutdownIcon, err := components.LoadSVG(assets.ShutdownSVG, 24, 24, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
 	if err != nil {
@@ -52,7 +52,7 @@ func NewSinglePageApp(hostStates []*state.HostState) *SinglePageApp {
 				Axis: layout.Vertical,
 			},
 		},
-		hosts:        hostStates,
+		host:         host,
 		shutdownIcon: shutdownIcon,
 		serverIcon:   serverIcon,
 		ShowLogBar:   false,
@@ -158,18 +158,14 @@ func (app *SinglePageApp) LayoutMainContent(gtx layout.Context, th *material.The
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return material.List(th, &app.list).Layout(
 				gtx,
-				len(app.hosts),
+				1,
 				func(gtx layout.Context, i int) layout.Dimensions {
-					return app.layoutHostRow(gtx, th, app.hosts[i])
+					return app.layoutHostRow(gtx, th, app.host)
 				},
 			)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			wslNodesLen := 0
-			for _, host := range app.hosts {
-				wslNodesLen += len(host.Wsls)
-			}
-
+			wslNodesLen := len(app.host.Wsls)
 			if wslNodesLen == 0 {
 				return layout.Dimensions{}
 			}
@@ -350,9 +346,7 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 
 func (app *SinglePageApp) layoutWSLNodes(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	allWslNodes := make([]*state.WSLState, 0)
-	for _, host := range app.hosts {
-		allWslNodes = append(allWslNodes, host.Wsls...)
-	}
+	allWslNodes = append(allWslNodes, app.host.Wsls...)
 
 	return layout.Inset{
 		Left: unit.Dp(16),
