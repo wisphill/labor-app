@@ -192,6 +192,7 @@ func pingToServer(hostItems []*state.HostState, w *app.Window) {
 
 func fetchWSLNodes(window *app.Window, hostItems []*state.HostState) {
 	for {
+		fmt.Println("Fetching the WSL Nodes")
 		var wg sync.WaitGroup
 		for _, host := range hostItems {
 			host.Mu.Lock()
@@ -202,20 +203,19 @@ func fetchWSLNodes(window *app.Window, hostItems []*state.HostState) {
 			go func(h *state.HostState, address string) {
 				defer wg.Done()
 				wslNodes, err := server.GetRunningWSLNodes()
+				h.Mu.Lock()
+				defer h.Mu.Unlock()
+				h.Wsls = make([]*state.WSLState, 0)
 				if err != nil {
 					fmt.Println("Error while getting the WSL nodes")
 					return
 				}
 
-				h.Mu.Lock()
-				h.Wsls = make([]*state.WSLState, 0)
 				for _, wslNode := range wslNodes {
 					h.Wsls = append(h.Wsls, &state.WSLState{
 						Name: wslNode,
 					})
 				}
-
-				h.Mu.Unlock()
 			}(host, addr)
 		}
 		wg.Wait()

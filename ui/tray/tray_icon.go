@@ -1,8 +1,10 @@
 package uitray
 
 import (
+	server "labor-app/cmd/host"
 	"labor-app/platform/darwin"
 	"log"
+	"os"
 
 	"github.com/gogpu/systray"
 
@@ -17,8 +19,12 @@ var iconBytes []byte
 func SetupTray(tray *systray.SystemTray, onClickAdmin func()) {
 	menu := systray.NewMenu()
 
-	menu.Add("Open", func() {
-		log.Println("Open clicked")
+	menu.Add("Open", onClickAdmin)
+	menu.Add("Turn on server", func() {
+		go server.TurnOnServer()
+	})
+	menu.Add("Turn off server", func() {
+		go server.TurnOffServer()
 	})
 
 	// 1. Kiểm tra trạng thái hiện tại (nếu có hàm check)
@@ -27,7 +33,7 @@ func SetupTray(tray *systray.SystemTray, onClickAdmin func()) {
 	var autoStartItem *systray.MenuItem
 
 	// 2. Tạo menu item checkbox
-	autoStartItem = menu.AddCheckbox("Start at Login", isAutoStart, func() {
+	autoStartItem = menu.AddCheckbox("Start application on login", isAutoStart, func() {
 		go func() {
 			if isAutoStart {
 				if err := darwin.DisableStartAtLogin(); err != nil {
@@ -49,14 +55,9 @@ func SetupTray(tray *systray.SystemTray, onClickAdmin func()) {
 			}
 		}()
 	})
-
-	menu.AddSeparator()
 	menu.Add("Quit", func() {
-		tray.Remove()
+		os.Exit(0)
 	})
-
-	menu.AddSeparator()
-	menu.Add("Open Admin App", onClickAdmin)
 
 	tray.
 		SetIcon(iconBytes).
