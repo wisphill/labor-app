@@ -24,10 +24,11 @@ import (
 )
 
 type SinglePageApp struct {
-	host         *state.HostState
-	list         widget.List
-	shutdownIcon *components.SVGRenderer
-	serverIcon   *components.SVGRenderer
+	host            *state.HostState
+	list            widget.List
+	shutdownIcon    *components.SVGRenderer
+	redShutdownIcon *components.SVGRenderer
+	serverIcon      *components.SVGRenderer
 
 	LogChan         chan string
 	DisplayedLogMsg string
@@ -39,11 +40,17 @@ func NewSinglePageApp(host *state.HostState) *SinglePageApp {
 	// Khởi tạo ở ngoài vòng lặp sự kiện (Event Loop)
 	shutdownIcon, err := components.LoadSVG(assets.ShutdownSVG, 24, 24, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
 	if err != nil {
-		log.Fatalf("Error whil loading SVG: %v", err)
+		log.Fatalf("Error while loading SVG: %v", err)
 	}
-	serverIcon, err := components.LoadSVG(assets.ServerSVG, 30, 30, color.NRGBA{R: 0, G: 0, B: 0, A: 255})
+
+	redShutdownIcon, err := components.LoadSVG(assets.ShutdownSVG, 24, 24, color.NRGBA{R: 231, G: 76, B: 60, A: 255})
 	if err != nil {
-		log.Fatalf("Error whil loading SVG: %v", err)
+		log.Fatalf("Error while loading SVG: %v", err)
+	}
+
+	serverIcon, err := components.LoadSVG(assets.ServerSVG, 40, 40, color.NRGBA{R: 0, G: 0, B: 0, A: 255})
+	if err != nil {
+		log.Fatalf("Error while loading SVG: %v", err)
 	}
 
 	return &SinglePageApp{
@@ -52,11 +59,12 @@ func NewSinglePageApp(host *state.HostState) *SinglePageApp {
 				Axis: layout.Vertical,
 			},
 		},
-		host:         host,
-		shutdownIcon: shutdownIcon,
-		serverIcon:   serverIcon,
-		ShowLogBar:   false,
-		LogChan:      make(chan string),
+		host:            host,
+		shutdownIcon:    shutdownIcon,
+		redShutdownIcon: redShutdownIcon,
+		serverIcon:      serverIcon,
+		ShowLogBar:      false,
+		LogChan:         make(chan string),
 	}
 }
 
@@ -171,10 +179,12 @@ func (app *SinglePageApp) LayoutMainContent(gtx layout.Context, th *material.The
 			}
 
 			return layout.Inset{
+				Top:  unit.Dp(16),
 				Left: unit.Dp(16),
 			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				lbl := material.H6(th, "Running WSL Nodes")
-				lbl.Font.Weight = 600
+				lbl := material.Body2(th, "WSL Instances")
+				lbl.TextSize = 16
+				lbl.Font.Weight = font.Bold
 				return lbl.Layout(gtx)
 			})
 		}),
@@ -203,10 +213,7 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 		}
 	}
 
-	return layout.Inset{
-		Top: unit.Dp(10), Bottom: unit.Dp(10),
-		Left: unit.Dp(16), Right: unit.Dp(16),
-	}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	layoutMainRowContent := func(gtx layout.Context, th *material.Theme, host *state.HostState) layout.Dimensions {
 		return layout.Flex{
 			Axis:      layout.Horizontal,
 			Alignment: layout.Middle,
@@ -215,42 +222,31 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 				return components.DrawStatusBadge(gtx, isOnline)
 			}),
 
-			layout.Rigid(layout.Spacer{
-				Width: unit.Dp(10),
-			}.Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{
+					Right: unit.Dp(10),
+					Left:  unit.Dp(10),
+				}.Layout(gtx, app.serverIcon.Layout)
+			}),
 
 			// Name + IP
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{
 					Axis: layout.Vertical,
 				}.Layout(gtx,
-					// ┌──────────────────────┐
-					// │ phil             🖥 │
-					// └──────────────────────┘
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{
 							Axis:      layout.Horizontal,
 							Alignment: layout.Middle,
 						}.Layout(gtx,
-
 							// Server name
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 								lbl := material.Body2(th, name)
-								lbl.Font.Weight = font.Medium
-								lbl.TextSize = unit.Sp(12)
+								lbl.Font.Weight = font.Bold
+								lbl.Font.Typeface = "Google Sans"
+								lbl.TextSize = unit.Sp(14)
 								lbl.LineHeight = unit.Sp(15)
 								return lbl.Layout(gtx)
-							}),
-
-							// Khoảng cách name -> icon
-							layout.Rigid(layout.Spacer{
-								Width: unit.Dp(5),
-							}.Layout),
-
-							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								return layout.Inset{
-									Right: unit.Dp(4),
-								}.Layout(gtx, app.serverIcon.Layout)
 							}),
 						)
 					}),
@@ -258,7 +254,7 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 					// IP address
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{
-							Top: unit.Dp(-5),
+							Top: unit.Dp(0),
 						}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							lbl := material.Caption(th, address)
 							lbl.Color = color.NRGBA{
@@ -307,7 +303,7 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 				}
 
 				return btn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.UniformInset(unit.Dp(0)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.UniformInset(unit.Dp(5)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{
 							Alignment: layout.Middle,
 						}.Layout(gtx,
@@ -324,7 +320,7 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 							// Text
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 								return layout.Inset{
-									Top: unit.Dp(6),
+									Top: unit.Dp(0),
 								}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 									lbl := material.Body2(th, circuitText)
 									lbl.Color = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
@@ -341,6 +337,32 @@ func (app *SinglePageApp) layoutHostRow(gtx layout.Context, th *material.Theme, 
 				})
 			}),
 		)
+	}
+
+	return layout.Inset{
+		Top:   unit.Dp(16),
+		Right: unit.Dp(8),
+		Left:  unit.Dp(16),
+	}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return widget.Border{
+			Color: color.NRGBA{
+				R: 220,
+				G: 220,
+				B: 220,
+				A: 255,
+			},
+			Width:        unit.Dp(1),
+			CornerRadius: unit.Dp(6),
+		}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{
+				Top:    unit.Dp(16),
+				Right:  unit.Dp(16),
+				Left:   unit.Dp(16),
+				Bottom: unit.Dp(16),
+			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layoutMainRowContent(gtx, th, host)
+			})
+		})
 	})
 }
 
@@ -418,7 +440,7 @@ func (app *SinglePageApp) layoutWSLNode(
 						lbl.TextSize = unit.Sp(12)
 
 						return layout.Inset{
-							Top: unit.Dp(-3),
+							Top: unit.Dp(0),
 						}.Layout(gtx, lbl.Layout)
 					}),
 
@@ -433,12 +455,12 @@ func (app *SinglePageApp) layoutWSLNode(
 									&wslNodeState.BtnPower,
 								)
 
-								btn.Background = color.NRGBA{R: 231, G: 76, B: 60, A: 255}
+								btn.Background = color.NRGBA{R: 231, G: 76, B: 60, A: 0}
 
 								return btn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 									return layout.UniformInset(unit.Dp(5)).Layout(
 										gtx,
-										app.shutdownIcon.Layout,
+										app.redShutdownIcon.Layout,
 									)
 								})
 							})

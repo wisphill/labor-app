@@ -134,6 +134,7 @@ func run(w *app.Window, host *state.HostState) error {
 	defer cancel()
 
 	th := material.NewTheme()
+	th.Face = "Google Sans"
 	var ops op.Ops
 
 	if err := config.EnsureConfig(); err != nil {
