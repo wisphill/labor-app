@@ -46,12 +46,12 @@ import "C"
 import (
 	"context"
 	"fmt"
-	"labor-app/assets/fonts"
-	"labor-app/config"
-	"labor-app/ui/layouts"
-	"labor-app/ui/state"
-	uitray "labor-app/ui/tray"
 	"log"
+	"piggy-bank/assets/fonts"
+	"piggy-bank/config"
+	"piggy-bank/ui/layouts"
+	"piggy-bank/ui/state"
+	uitray "piggy-bank/ui/tray"
 	"sync"
 	"time"
 
@@ -117,7 +117,7 @@ func openGioWindow(host *state.HostState) {
 	// if not, create a new window
 	w := new(app.Window)
 	w.Option(
-		app.Title("Laboratory management"),
+		app.Title("Piggy Bank"),
 		app.Size(unit.Dp(820), unit.Dp(404)),
 		app.MinSize(unit.Dp(820), unit.Dp(404)),
 		app.MaxSize(unit.Dp(820), unit.Dp(404)),

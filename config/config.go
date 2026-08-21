@@ -14,7 +14,7 @@ func EnsureConfig() error {
 		return err
 	}
 
-	dir := filepath.Join(home, ".labor_app")
+	dir := filepath.Join(home, ".piggy_bank")
 
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
@@ -35,7 +35,7 @@ func Load() error {
 		return fmt.Errorf("get home directory: %w", err)
 	}
 
-	configPath := filepath.Join(home, ".labor_app", "config")
+	configPath := filepath.Join(home, ".piggy_bank", "config")
 
 	file, err := os.Open(configPath)
 	if os.IsNotExist(err) {

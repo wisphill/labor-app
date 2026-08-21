@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>labor-app</string>
+    <string>piggy-bank</string>
     <key>CFBundleIdentifier</key>
-    <string>com.wisphill.laborapp</string>
+    <string>com.wisphill.PiggyBank</string>
     <key>CFBundleName</key>
-    <string>LaborApp</string>
+    <string>PiggyBank</string>
     <key>CFBundleIconFile</key>
     <string>icon.icns</string>
 

@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# LaborApp Installer Script
+# PiggyBank Installer Script
 # This creates a professional PKG installer with custom UI
 
-APP_NAME="LaborApp"
+APP_NAME="PiggyBank"
 VERSION="1.0"
-BUNDLE_ID="com.wisphill.laborapp"
+BUNDLE_ID="com.wisphill.PiggyBank"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 TARGET_DIR="$PROJECT_ROOT/target"
-APP_BUNDLE="$PROJECT_ROOT/LaborApp.app"
+APP_BUNDLE="$PROJECT_ROOT/PiggyBank.app"
 
 # Create temporary build directory
 TEMP_PKG_DIR=$(mktemp -d)
@@ -37,7 +37,7 @@ cat > "$TEMP_PKG_DIR/scripts/postinstall" << 'EOF'
 # Post-installation steps
 echo "Installation complete!"
 # Optional: Launch the app
-# open /Applications/LaborApp.app
+# open /Applications/PiggyBank.app
 EOF
 chmod +x "$TEMP_PKG_DIR/scripts/postinstall"
 

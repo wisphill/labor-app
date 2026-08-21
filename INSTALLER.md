@@ -1,4 +1,4 @@
-# LaborApp Installer Guide
+# PiggyBank Installer Guide
 
 ## Available Installer Options
 
@@ -11,13 +11,13 @@ make pkg
 - ✅ "Next Next" workflow
 - ✅ Installs to `/Applications` (user only)
 - ✅ Fast installation
-- 📍 Output: `target/LaborApp-Installer.pkg`
+- 📍 Output: `target/PiggyBank-Installer.pkg`
 
 **How to use:**
 1. Run `make pkg`
-2. Open `target/LaborApp-Installer.pkg`
+2. Open `target/PiggyBank-Installer.pkg`
 3. Follow the installer prompts
-4. App installs to `/Applications/LaborApp.app`
+4. App installs to `/Applications/PiggyBank.app`
 
 ---
 
@@ -29,12 +29,12 @@ make dmg
 - ✅ Standard macOS distribution method
 - ✅ Drag & drop installation
 - ✅ Professional look
-- 📍 Output: `target/LaborApp.dmg`
+- 📍 Output: `target/PiggyBank.dmg`
 
 **How to use:**
 1. Run `make dmg`
-2. Open `target/LaborApp.dmg`
-3. Drag `LaborApp.app` to Applications folder
+2. Open `target/PiggyBank.dmg`
+3. Drag `PiggyBank.app` to Applications folder
 
 ---
 
@@ -44,7 +44,7 @@ Install directly to your Applications:
 make install
 ```
 - ✅ Quick local installation
-- 📍 Installs to: `~/Applications/LaborApp.app`
+- 📍 Installs to: `~/Applications/PiggyBank.app`
 
 ---
 

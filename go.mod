@@ -1,4 +1,4 @@
-module labor-app
+module piggy-bank
 
 go 1.25.0
 

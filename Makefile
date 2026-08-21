@@ -1,7 +1,7 @@
-APP_NAME := labor-app
+APP_NAME := piggy-bank
 TARGET_DIR := target
 BINARY := $(TARGET_DIR)/$(APP_NAME)
-APP_BUNDLE := LaborApp.app
+APP_BUNDLE := PiggyBank.app
 APP_BUNDLE_MACOS := $(APP_BUNDLE)/Contents/MacOS
 
 .PHONY: run build clean app install dmg pkg
@@ -18,12 +18,12 @@ app: build
 	mkdir -p $(APP_BUNDLE)/Contents
 	cp $(BINARY) $(APP_BUNDLE_MACOS)/$(APP_NAME)
 	cp bundle/Info.plist $(APP_BUNDLE)/Contents/Info.plist
-	@echo "✓ LaborApp.app built successfully"
+	@echo "✓ PiggyBank built successfully"
 
 install: app
 	mkdir -p ~/Applications
 	cp -r $(APP_BUNDLE) ~/Applications/$(APP_BUNDLE)
-	@echo "✓ LaborApp.app installed to ~/Applications"
+	@echo "✓ PiggyBank installed to ~/Applications"
 
 start: build
 	./$(BINARY)
@@ -36,24 +36,24 @@ clean:
 dmg: app
 	@echo "📦 Creating DMG installer..."
 	mkdir -p $(TARGET_DIR)
-	rm -f $(TARGET_DIR)/LaborApp.dmg
-	mkdir -p /tmp/laborapp-dmg
-	cp -r $(APP_BUNDLE) /tmp/laborapp-dmg/
-	ln -s /Applications /tmp/laborapp-dmg/Applications 2>/dev/null || true
-	hdiutil create -volname "LaborApp" -srcfolder /tmp/laborapp-dmg -ov -format UDZO $(TARGET_DIR)/LaborApp.dmg
-	rm -rf /tmp/laborapp-dmg
-	@echo "✓ DMG installer created: $(TARGET_DIR)/LaborApp.dmg"
+	rm -f $(TARGET_DIR)/PiggyBank.dmg
+	mkdir -p /tmp/PiggyBank-dmg
+	cp -r $(APP_BUNDLE) /tmp/PiggyBank-dmg/
+	ln -s /Applications /tmp/PiggyBank-dmg/Applications 2>/dev/null || true
+	hdiutil create -volname "PiggyBank" -srcfolder /tmp/PiggyBank-dmg -ov -format UDZO $(TARGET_DIR)/PiggyBank.dmg
+	rm -rf /tmp/PiggyBank-dmg
+	@echo "✓ DMG installer created: $(TARGET_DIR)/PiggyBank.dmg"
 
 # Create PKG installer (traditional "next next" installer with UI)
 pkg: app
 	@echo "📦 Creating PKG installer..."
-	mkdir -p $(TARGET_DIR)/LaborApp-pkg/Applications
-	cp -r $(APP_BUNDLE) $(TARGET_DIR)/LaborApp-pkg/Applications/
-	pkgbuild --root $(TARGET_DIR)/LaborApp-pkg \
-		--identifier com.wisphill.laborapp \
+	mkdir -p $(TARGET_DIR)/PiggyBank-pkg/Applications
+	cp -r $(APP_BUNDLE) $(TARGET_DIR)/PiggyBank-pkg/Applications/
+	pkgbuild --root $(TARGET_DIR)/PiggyBank-pkg \
+		--identifier com.wisphill.PiggyBank \
 		--version 1.0 \
 		--install-location / \
-		$(TARGET_DIR)/LaborApp-Installer.pkg
-	rm -rf $(TARGET_DIR)/LaborApp-pkg
-	@echo "✓ PKG installer created: $(TARGET_DIR)/LaborApp-Installer.pkg"
+		$(TARGET_DIR)/PiggyBank-Installer.pkg
+	rm -rf $(TARGET_DIR)/PiggyBank-pkg
+	@echo "✓ PKG installer created: $(TARGET_DIR)/PiggyBank-Installer.pkg"
 	@echo "👉 Double-click to install with UI!"

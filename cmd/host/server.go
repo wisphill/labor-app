@@ -2,10 +2,10 @@ package server
 
 import (
 	"fmt"
-	executor "labor-app/cmd/execute_commands"
 	"net"
 	"os"
 	"os/exec"
+	executor "piggy-bank/cmd/execute_commands"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -50,7 +50,7 @@ func TurnOffServer() {
 func TurnOnServer() error {
 	telegramBotToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if telegramBotToken == "" {
-		return fmt.Errorf("Cannot find the telegram bot token. Configure at .labor_app/config")
+		return fmt.Errorf("Cannot find the telegram bot token. Configure at .piggy_bank/config")
 	}
 	command := fmt.Sprintf(
 		`curl -s -X POST "https://api.telegram.org/bot%s/sendMessage" -d chat_id="-5115557042" -d text="/wake"`,

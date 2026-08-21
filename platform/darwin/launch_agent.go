@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-const Label = "com.wisphill.laboratory"
+const Label = "com.wisphill.piggybank"
 
 func plistPath() (string, error) {
 	home, err := os.UserHomeDir()

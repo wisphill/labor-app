@@ -3,10 +3,10 @@ package uitray
 import (
 	"context"
 	"fmt"
-	"labor-app/platform/darwin"
-	"labor-app/ui/state"
 	"log"
 	"os"
+	"piggy-bank/platform/darwin"
+	"piggy-bank/ui/state"
 	"time"
 
 	"github.com/gogpu/systray"
@@ -89,7 +89,7 @@ func SetupTray(ctx context.Context, host *state.HostState, tray *systray.SystemT
 
 	tray.
 		SetTemplateIcon(iconBytes).
-		SetTooltip("Laboratory management").
+		SetTooltip("Piggy bank").
 		SetMenu(menu).
 		Show()
 }

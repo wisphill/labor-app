@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	executor "labor-app/cmd/execute_commands"
+	executor "piggy-bank/cmd/execute_commands"
 )
 
 func main() {

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	server "labor-app/cmd/host"
+	server "piggy-bank/cmd/host"
 	"time"
 )
 

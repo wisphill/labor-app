@@ -9,14 +9,14 @@
 
 ## Project Overview
 
-Labor App is a macOS menubar utility designed to manage a laboratory workstation or remote server environment from a lightweight tray interface. It monitors the availability of a host machine, detects running WSL distributions, exposes quick power controls, and opens a local management window for status and actions.
+Piggy Bank is a macOS menubar utility designed to manage a laboratory workstation or remote server environment from a lightweight tray interface. It monitors the availability of a host machine, detects running WSL distributions, exposes quick power controls, and opens a local management window for status and actions.
 
 The application is built with Go and Gio, and it uses a native macOS accessory-style window so it can stay out of the Dock while remaining usable as a focused desktop tool.
 
 ## Project Structure
 
 ```text
-labor-app/
+piggy-bank/
 ├── assets/                              # Embedded application assets
 ├── cmd/                                 # Command and host logic
 │   ├── execute_commands/
@@ -24,7 +24,7 @@ labor-app/
 │   └── host/
 │       └── server.go                    # Remote host, WSL, and power actions
 ├── config/                              # Local configuration helpers
-│   └── config.go                        # Reads ~/.labor_app/config
+│   └── config.go                        # Reads ~/.piggy_bank/config
 ├── docs/                                # Internal notes and implementation docs
 │   └── cgo.md                           # macOS Cocoa runtime notes
 ├── platform/                            # OS-specific integrations
@@ -49,7 +49,7 @@ labor-app/
 ├── LICENSE                              # MIT license
 ├── main.go                              # App entry point and macOS window setup
 ├── Makefile                             # Build and run convenience commands
-├── LaborApp.app/                        # Bundled macOS app package
+├── PiggyBank.app/                        # Bundled macOS app package
 ├── target/                              # Build output directory
 ├── vendor/                              # Vendored Go dependencies
 └── README.md                            # Project documentation
@@ -126,7 +126,7 @@ make start
 
 ### Environment configuration
 
-The app reads settings from the user config directory at `~/.labor_app/config`. Add environment variables such as:
+The app reads settings from the user config directory at `~/.piggy_bank/config`. Add environment variables such as:
 
 ```bash
 export TELEGRAM_BOT_TOKEN="your_telegram_token"

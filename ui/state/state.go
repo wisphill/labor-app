@@ -3,7 +3,7 @@ package state
 import (
 	"context"
 	"fmt"
-	server "labor-app/cmd/host"
+	server "piggy-bank/cmd/host"
 	"sync"
 	"time"
 
