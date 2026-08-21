@@ -37,7 +37,6 @@ type SinglePageApp struct {
 }
 
 func NewSinglePageApp(host *state.HostState) *SinglePageApp {
-	// Khởi tạo ở ngoài vòng lặp sự kiện (Event Loop)
 	shutdownIcon, err := components.LoadSVG(assets.ShutdownSVG, 24, 24, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
 	if err != nil {
 		log.Fatalf("Error while loading SVG: %v", err)

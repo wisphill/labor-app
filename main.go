@@ -100,21 +100,21 @@ func main() {
 	app.Main()
 }
 
-// openGioWindow mở cửa sổ Gio UI hoặc đưa cửa sổ đã có lên trên cùng
+// openGioWindow bring the Gio window to the front
 func openGioWindow(host *state.HostState) {
 	winMutex.Lock()
 
-	// Nếu cửa sổ đã mở -> Kéo lên trên cùng
+	// if the window is create, bring it to the front
 	if activeWin != nil {
 		activeWin.Perform(system.ActionRaise)
 		winMutex.Unlock()
 
-		// Ép macOS focus
+		// focus on the application, because this is the tray application
 		C.forceActivateApp()
 		return
 	}
 
-	// Nếu chưa mở -> Tạo cửa sổ mới
+	// if not, create a new window
 	w := new(app.Window)
 	w.Option(
 		app.Title("Laboratory management"),
@@ -126,10 +126,10 @@ func openGioWindow(host *state.HostState) {
 	activeWin = w
 	winMutex.Unlock()
 
-	// Ép macOS focus vào cửa sổ mới
+	// focus
 	C.forceActivateApp()
 
-	// Chạy vòng lặp render window
+	// loop to render window
 	go func() {
 		if err := run(w, host); err != nil {
 			log.Println("Window closed with error:", err)
@@ -233,21 +233,20 @@ func fetchWSLUI(ctx context.Context, w *app.Window, host *state.HostState) {
 	}
 }
 
+// a listener channel to handle the logs on the UI
 func startLogListener(window *app.Window, pageApp *layouts.SinglePageApp) {
 	go func() {
-		// Vòng lặp range tự động thoát khi logChan bị gọi close()
 		for msg := range pageApp.LogChan {
 			if msg == "" {
-				pageApp.ShowLogBar = false // Gửi "" -> Ẩn log bar
+				pageApp.ShowLogBar = false
 			} else {
 				pageApp.DisplayedLogMsg = msg
-				pageApp.ShowLogBar = true // Gửi text -> Hiện log bar
+				pageApp.ShowLogBar = true
 			}
 
-			window.Invalidate() // Đánh thức Gio vẽ lại UI
+			window.Invalidate()
 		}
 
-		// Khi channel bị close(logChan) hoàn toàn -> Tự ẩn log bar
 		pageApp.ShowLogBar = false
 		if window != nil {
 			window.Invalidate()
