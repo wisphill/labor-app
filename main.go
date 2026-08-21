@@ -9,6 +9,11 @@ package main
 // Con trỏ lưu lại hàm gốc của macOS
 static IMP original_setActivationPolicy;
 
+static void InitNSApp() {
+    [NSApplication sharedApplication];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
+}
+
 // HÀM GIẢ MẠO: Bất kể ai (kể cả Gio UI) gọi đổi Policy, ta đều ép nó về Accessory (1)
 BOOL hook_setActivationPolicy(id self, SEL _cmd, NSApplicationActivationPolicy policy) {
     BOOL (*original)(id, SEL, NSApplicationActivationPolicy) = (void *)original_setActivationPolicy;
@@ -63,6 +68,12 @@ var (
 	winMutex  sync.Mutex
 	activeWin *app.Window
 )
+
+func init() {
+	// force MacOS to start AppKit/CoreGraphics context
+	// before connecting to the window server
+	C.InitNSApp()
+}
 
 func main() {
 	C.forceAccessoryForever()
