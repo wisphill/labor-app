@@ -46,12 +46,13 @@ func SetupTray(ctx context.Context, host *state.HostState, tray *systray.SystemT
 				return
 			default:
 				host.Mu.Lock()
-				if host.IsOnline {
+				isOnline := host.IsOnline
+				host.Mu.Unlock()
+				if isOnline {
 					serverItem.SetLabel("Turn off server")
 				} else {
 					serverItem.SetLabel("Turn on server")
 				}
-				host.Mu.Unlock()
 			}
 		}
 	}()

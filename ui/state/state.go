@@ -23,15 +23,16 @@ type TerminalScript struct {
 }
 
 type HostState struct {
-	Name         string
-	Address      string
-	IsOnline     bool
-	PingRTT      time.Duration
-	ServerSignal chan bool
-
-	BtnPower widget.Clickable
-	Wsls     []*WSLState
+	// protected by mutex
 	Mu       sync.Mutex
+	Name     string
+	Address  string
+	IsOnline bool
+	PingRTT  time.Duration
+	Wsls     []*WSLState
+
+	ServerSignal chan bool
+	BtnPower     widget.Clickable
 }
 
 type WSLState struct {
@@ -117,10 +118,10 @@ func (host *HostState) HandleServerSignal(ctx context.Context) {
 			}
 
 			if signal == false {
-				fmt.Println("Turn off the server nowwww")
+				fmt.Println("Turning off the server!")
 				server.TurnOffServer()
 			} else {
-				fmt.Println("Turn on the server nowwww")
+				fmt.Println("Turning on the server!")
 				server.TurnOnServer()
 			}
 		}
