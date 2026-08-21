@@ -46,6 +46,7 @@ import "C"
 import (
 	"context"
 	"fmt"
+	"labor-app/assets/fonts"
 	"labor-app/config"
 	"labor-app/ui/layouts"
 	"labor-app/ui/state"
@@ -145,7 +146,7 @@ func run(w *app.Window, host *state.HostState) error {
 	defer cancel()
 
 	th := material.NewTheme()
-	th.Face = "Google Sans"
+	th.Shaper = fonts.NewShaper()
 	var ops op.Ops
 
 	if err := config.EnsureConfig(); err != nil {
