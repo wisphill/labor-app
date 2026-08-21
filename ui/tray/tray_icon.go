@@ -87,7 +87,7 @@ func SetupTray(ctx context.Context, host *state.HostState, tray *systray.SystemT
 	})
 
 	tray.
-		SetIcon(iconBytes).
+		SetTemplateIcon(iconBytes).
 		SetTooltip("Laboratory management").
 		SetMenu(menu).
 		Show()
