@@ -1,4 +1,4 @@
-# Labor App
+# Piggy Bank
 
 > **macOS · Remote Host Control · WSL Monitoring · Lab Automation**
 
