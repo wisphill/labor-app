@@ -66,7 +66,7 @@ func TurnOnServer() error {
 }
 
 func GetRunningWSLNodes() ([]string, error) {
-	output, err := executor.ExecuteCommands(`ssh Windows@yuu "wsl -l -v" | iconv -f UTF-16LE -t UTF-8 | sed '1d; s/^\* //'`)
+	output, err := executor.ExecuteCommands(`curl -s -X POST http://yuu:41020 -d "wsl -l -v" | iconv -f UTF-16LE -t UTF-8 | sed '1d; s/^\* //'`)
 	if err != nil {
 		fmt.Printf("Error while getting the WSL nodes %v", err)
 		return nil, err
